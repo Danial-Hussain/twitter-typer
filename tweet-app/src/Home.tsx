@@ -31,10 +31,11 @@ import {
 } from "@chakra-ui/react";
 
 const CreateGame = () => {
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   const create = async () => {
-    let id = await createGame();
+    let id = await createGame(user.token);
     navigate(`/game/${id}`);
   };
 
@@ -68,6 +69,7 @@ const CreateGame = () => {
 };
 
 const JoinGame = () => {
+  const { user } = useAuth();
   const [error, setError] = useState("");
   const [joinCode, setJoinCode] = useState<string>("");
 
@@ -76,7 +78,7 @@ const JoinGame = () => {
   const navigate = useNavigate();
 
   const join = async () => {
-    let result = await joinGame(parseInt(joinCode));
+    let result = await joinGame(parseInt(joinCode), user.token);
     if (result) navigate(`/game/${joinCode}`);
     else {
       setError("Invalid code");
@@ -121,12 +123,9 @@ const JoinGame = () => {
 };
 
 const Stats = () => {
-  const { user } = useAuth();
-  const gamesPlayed = user.gameResults.length;
-  const gamesWon = user.gameResults.filter((r) => r.placement === 1).length;
-  const avgAccuracy =
-    user.gameResults.reduce((prev, curr) => prev + curr.accuracy, 0) /
-      gamesPlayed || 0;
+  const gamesPlayed = 0;
+  const gamesWon = 0;
+  const avgAccuracy = 0;
 
   return (
     <StatGroup>
@@ -147,11 +146,11 @@ const Stats = () => {
 };
 
 const Profile = () => {
-  const { user, changeUsername } = useAuth();
-  const [tmpUsername, setTmpUsername] = useState(user.username);
+  const { user, changeName } = useAuth();
+  const [tmpName, setTmpName] = useState(user.name);
 
   useEffect(() => {
-    setTmpUsername(user.username);
+    setTmpName(user.name);
   }, [user]);
 
   return (
@@ -178,17 +177,17 @@ const Profile = () => {
                 <Box fontSize={"xl"} color={"gray.600"} mr={"2"}>
                   {"Your Username:"}
                 </Box>
-                <Editable value={tmpUsername}>
+                <Editable value={tmpName}>
                   <Flex align={"center"} color={"gray.500"} fontSize={"xl"}>
                     <EditIcon rounded={"sm"} mx={"4px"} />
                     <EditablePreview />
                     <EditableInput
-                      onChange={(e) => setTmpUsername(e.target.value)}
+                      onChange={(e) => setTmpName(e.target.value)}
                     />
-                    {tmpUsername != user.username && (
+                    {tmpName != user.name && (
                       <Button
                         variant={"unstyled"}
-                        onClick={() => changeUsername(tmpUsername)}
+                        onClick={() => changeName(tmpName)}
                       >
                         <CheckIcon
                           p={"1"}

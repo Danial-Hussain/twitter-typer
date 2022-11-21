@@ -1,11 +1,11 @@
 import { server } from "./config";
-import { GameResult, Keyboard } from "./logic";
 
-const createGame = async () => {
+const createGame = async (token: string) => {
   const response = await fetch(`${server}/createGame`, {
     method: "POST",
     mode: "cors",
     headers: new Headers({
+      Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     }),
   });
@@ -13,7 +13,7 @@ const createGame = async () => {
   return data;
 };
 
-const joinGame = async (code: number) => {
+const joinGame = async (code: number, token: string) => {
   const response = await fetch(`${server}/joinGame?id=${code}`, {
     method: "GET",
     mode: "cors",
@@ -26,20 +26,7 @@ const joinGame = async (code: number) => {
   }
 };
 
-interface SignInResponse {
-  token: string;
-  username: string;
-  gameResults: GameResult[];
-  keyboards: Keyboard[];
-}
-
 const login = async (name: string, email: string, picture: string) => {
-  const err_result = {
-    token: "",
-    username: "",
-    gameResults: [],
-    keyboards: [],
-  };
   try {
     const response = await fetch(`${server}/signin`, {
       method: "POST",
@@ -54,13 +41,13 @@ const login = async (name: string, email: string, picture: string) => {
       }),
     });
     if (response.status == 200) {
-      let data: SignInResponse = await response.json();
+      let data: string = await response.json();
       return data;
     } else {
-      return err_result;
+      return "";
     }
   } catch (err) {
-    return err_result;
+    return "";
   }
 };
 

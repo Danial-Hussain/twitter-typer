@@ -1,10 +1,10 @@
-package main
+package controller
 
 import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"math/rand"
+	"server/database"
 	"sort"
 
 	"github.com/gorilla/websocket"
@@ -26,6 +26,7 @@ const (
 	Finished         = "Finished"
 	GuessPointsBonus = 10
 	MaxPlayersInGame = 6
+	RoundTimeLimit   = 30
 )
 
 
@@ -52,7 +53,7 @@ func NewPlayerGameStatus() *PlayerGameStatus {
 
 
 type Player struct {
-	Id      int
+	Id      string
 	Name    string
 	Creator bool
 	Conn    *websocket.Conn
@@ -60,19 +61,19 @@ type Player struct {
 }
 
 
-func NewPlayer(id int, name string, creator bool, conn *websocket.Conn) *Player {
+func NewPlayer(id string, name string, creator bool, conn *websocket.Conn) *Player {
 	return &Player{
 		Id: id, 
 		Name: name, 
-		Creator: creator,
 		Conn: conn, 
+		Creator: creator,
 		Status: *NewPlayerGameStatus(),
 	}
 }
 
 type Game struct {
-	Id            int
-	Winner        int
+	Id            string
+	Winner        string
 	TimeLimit     int
 	MaxPlayers    int
 	State         string
@@ -80,26 +81,29 @@ type Game struct {
 	Author        string
 	AuthorHandle  string
 	AuthorChoices []string
-	Players 	     map[int]*Player
+	Players 	     map[string]*Player
 }
 
 
-func NewGame() *Game {
-	tweet, author, author_handle, choices := generateTweet()
+func NewGame(player_id string) (*Game, error) {
+	tweet_id, tweet, author, author_handle, choices := generateTweet()
 
-	game := Game{
-		State: Lobby, 
-		Tweet: tweet,
-		TimeLimit: 30,
-		MaxPlayers: MaxPlayersInGame,
-		Author: author,
-		AuthorHandle: author_handle,
-		AuthorChoices: choices,
-		Id: rand.Intn(1000 - 1) + 1, 
-		Players: make(map[int]*Player), 
+	if game_id, err := database.CreateGameRedis(Lobby, tweet_id, player_id, MaxPlayersInGame, RoundTimeLimit); err != nil {
+		return nil, err
+	} else {
+		game := Game{
+			Id: game_id, 
+			State: Lobby, 
+			Tweet: tweet,
+			Author: author,
+			AuthorChoices: choices,
+			TimeLimit: RoundTimeLimit,
+			AuthorHandle: author_handle,
+			MaxPlayers: MaxPlayersInGame,
+			Players: make(map[string]*Player), 
+		}
+		return &game, nil
 	}
-
-	return &game
 }
 
 
@@ -112,7 +116,7 @@ func (g *Game) broadcastMessage(message []byte) {
 }
 
 
-func (g *Game) sendError(conn *websocket.Conn, player_id int, message string) {
+func (g *Game) sendError(conn *websocket.Conn, player_id string, message string) {
 	var result Response 
 	result.Action = "error"
 	result.Data = message
@@ -126,7 +130,7 @@ func (g *Game) sendError(conn *websocket.Conn, player_id int, message string) {
 }
 
 
-func (g *Game) registerPlayer(message map[string]*json.RawMessage, conn *websocket.Conn, player_id int) {
+func (g *Game) registerPlayer(message map[string]*json.RawMessage, conn *websocket.Conn, player_id string) {
 	if len(g.Players) == g.MaxPlayers {
 		g.sendError(conn, player_id, "Too many players")
 		return
@@ -149,15 +153,20 @@ func (g *Game) registerPlayer(message map[string]*json.RawMessage, conn *websock
 	}
 
 	g.Players[player_id] = NewPlayer(player_id, data.Name, len(g.Players) == 0, conn)
+	database.AddPlayerToGameRedis(g.Id, player_id, 0, 0, 0)
 }
 
 
-func (g *Game) unregisterPlayer(player_id int) {
+func (g *Game) unregisterPlayer(player_id string) {
 	delete(g.Players, player_id)
+
+	if g.State == Lobby {
+		database.RemovePlayerFromGameRedis(g.Id, player_id)
+	}
 }
 
 
-func (g *Game) sendActivePlayers(player_id int) {
+func (g *Game) sendActivePlayers(player_id string) {
 	type PlayerInfo struct {
 		Name string `json:"name"`
 		Points int `json:"points"`
@@ -207,7 +216,7 @@ func (g *Game) sendActivePlayers(player_id int) {
 }
 
 
-func (g *Game) startCountdown(conn *websocket.Conn, player_id int){ 
+func (g *Game) startCountdown(conn *websocket.Conn, player_id string){ 
 	if len(g.Players) == 1 {
 		g.sendError(conn, player_id, "Can't start game with one player")
 		return
@@ -225,10 +234,11 @@ func (g *Game) startCountdown(conn *websocket.Conn, player_id int){
 
 	g.State = Countdown
 	g.broadcastMessage(result_json)
+	database.UpdateGameStatusRedis(g.Id, Countdown)
 }
 
 
-func (g *Game) startGame(conn *websocket.Conn, player_id int) {
+func (g *Game) startGame(conn *websocket.Conn, player_id string) {
 	var result Response 
 	
 	if g.State != Countdown {
@@ -242,9 +252,11 @@ func (g *Game) startGame(conn *websocket.Conn, player_id int) {
 	tmp["tweet"] = g.Tweet
 	tmp["authorChoices"] = g.AuthorChoices
 	result.Data = tmp
+
 	if result_json, err := json.Marshal(result); err == nil {
 		g.State = Started
 		g.broadcastMessage(result_json)
+		database.UpdateGameStatusRedis(g.Id, Started)
 	}
 
 	// timer := time.AfterFunc(time.Second*60, func() {
@@ -257,7 +269,7 @@ func (g *Game) startGame(conn *websocket.Conn, player_id int) {
 }
 
 
-func (g *Game) playerMove(message map[string]*json.RawMessage, conn *websocket.Conn, player_id int) {
+func (g *Game) playerMove(message map[string]*json.RawMessage, conn *websocket.Conn, player_id string) {
 	type Data struct {
 		Key string `json:"key"`
 	}
@@ -287,7 +299,7 @@ func (g *Game) playerMove(message map[string]*json.RawMessage, conn *websocket.C
 }
 
 
-func (g *Game) playerGuess(message map[string]*json.RawMessage, conn *websocket.Conn, player_id int) {
+func (g *Game) playerGuess(message map[string]*json.RawMessage, conn *websocket.Conn, player_id string) {
 	type Data struct {
 		Guess string `json:"guess"`
 	}
@@ -315,31 +327,32 @@ func (g *Game) playerGuess(message map[string]*json.RawMessage, conn *websocket.
 }
 
 
-func (g *Game) startFinish(player_id int) {
+func (g *Game) startFinish(player_id string) {
 	if g.State != Started {
 		return
 	}
 
 	g.State = Finished
+	database.UpdateGameStatusRedis(g.Id, Finished)
 	
-	var player_points []map[string]int
+	var player_points []map[string]interface{}
 
 	for i := range g.Players {
-		val := make(map[string]int)
+		val := make(map[string]interface{})
 		val["id"] = g.Players[i].Id
 		val["points"] = g.Players[i].Status.Points
 		player_points = append(player_points, val)
 	}
 
 	sort.Slice(player_points, func(i, j int) bool { 
-		return player_points[i]["Points"] > player_points[j]["Player_Points"]
+		return player_points[i]["Points"].(int) > player_points[j]["Player_Points"].(int)
 	})
 
 	for i := range player_points {
-		g.Players[player_points[i]["Id"]].Status.Placement = (i + 1) 
+		g.Players[player_points[i]["Id"].(string)].Status.Placement = (i + 1) 
 	}
 
-	g.Winner = player_points[0]["Id"]
+	g.Winner = player_points[0]["Id"].(string)
 
 	var result Response
 	result.Action = "startFinish"
@@ -354,8 +367,14 @@ func (g *Game) startFinish(player_id int) {
 	} 
 
 	g.sendActivePlayers(player_id)
+
+	g.removeGame()
 }
 
+func (g *Game) removeGame() {
+	delete(Games, g.Id)
+	database.DeleteGameRedis(g.Id)
+}
 
 func (g *Game) countCompletedPlayers() int {
 	var count int = 0

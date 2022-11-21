@@ -115,14 +115,15 @@ export interface Player {
 
 export interface GameManager {
   tweet: Tweet;
-  gameId: number;
+  gameId: string;
   state: GameState;
   players: Player[];
   playerName: string;
 }
 
 export function useGameManager(
-  gameId: number,
+  token: string,
+  gameId: string,
   playerName: string
 ): [GameManager, PerformAction] {
   const [performAction, setPerformAction] = useState<PerformAction>(() => {});
@@ -137,7 +138,7 @@ export function useGameManager(
   const PING_RATE = 30000;
 
   useEffect(() => {
-    const soc = new WebSocket(`${socket}?id=${gameId}`);
+    const soc = new WebSocket(`${socket}?id=${gameId}&token=${token}`);
 
     soc.onopen = () => {
       setPerformAction(() => (action: Action) => {

@@ -1,7 +1,6 @@
 import { login } from "./api";
 import useStorage from "./hooks";
 import jwt_decode from "jwt-decode";
-import { GameResult, Keyboard } from "./logic";
 import { useContext, createContext } from "react";
 
 interface User {
@@ -9,9 +8,6 @@ interface User {
   email: string;
   token: string;
   picture: string;
-  username: string;
-  keyboards: Keyboard[];
-  gameResults: GameResult[];
 }
 
 interface GoogleAuthResponse {
@@ -22,20 +18,17 @@ interface GoogleAuthResponse {
 }
 
 const defaultGuest: User = {
-  name: "",
+  name: "guest",
   token: "",
   email: "",
   picture: "",
-  username: "guest",
-  keyboards: [],
-  gameResults: [],
 };
 
 const AuthContext = createContext({
   user: defaultGuest,
   signIn: (response: GoogleAuthResponse) => {},
   signOut: () => {},
-  changeUsername: (username: string) => {},
+  changeName: (username: string) => {},
 });
 
 const useAuth = () => useContext(AuthContext);
@@ -49,18 +42,15 @@ const useProviderAuth = () => {
     let email = object.email;
     let name = object.name;
     let picture = object.picture;
-    let data = await login(email, name, picture);
-    if (data.token === "") {
+    let token = await login(name, email, picture);
+    if (token === "") {
       setUser(userGuest);
     } else {
       setUser({
         email: email,
         name: name,
         picture: picture,
-        username: data.username,
-        token: data.token,
-        keyboards: data.keyboards,
-        gameResults: data.gameResults,
+        token: token,
       });
     }
   };
@@ -69,15 +59,15 @@ const useProviderAuth = () => {
     setUser(userGuest);
   };
 
-  const changeUsername = (username: string) => {
+  const changeName = (newName: string) => {
     if (user.token === "") {
-      setUser({ ...user, username: username });
+      setUser({ ...user, name: newName });
     } else {
-      setUser({ ...user, username: username });
+      setUser({ ...user, name: newName });
     }
   };
 
-  return { user, signIn, signOut, changeUsername };
+  return { user, signIn, signOut, changeName };
 };
 
 export { AuthContext, useAuth, useProviderAuth };

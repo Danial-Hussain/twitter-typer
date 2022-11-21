@@ -41,6 +41,7 @@ import {
   CircularProgressLabel,
   HStack,
 } from "@chakra-ui/react";
+import { useAuth } from "./auth";
 
 interface LobbyProps {
   gameManager: GameManager;
@@ -583,10 +584,14 @@ const Finished: React.FC<FinishedProps> = ({ gameManager }) => {
 };
 
 const Home = () => {
+  const { user } = useAuth();
   const location = useLocation();
-  const gameId = parseInt(location.pathname.split("/")[2]);
-  const [guestUsername] = useStorage("guestUsername", "User");
-  const [gameManager, performAction] = useGameManager(gameId, guestUsername);
+  const gameId = location.pathname.split("/")[2];
+  const [gameManager, performAction] = useGameManager(
+    user.token,
+    gameId,
+    user.name
+  );
 
   return (
     <Layout>
