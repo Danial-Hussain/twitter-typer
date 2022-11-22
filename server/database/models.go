@@ -13,6 +13,7 @@ type PlayerRedis struct {
 	Name           string          `json:"name"`
 	Email          string          `json:"email"`
 	Picture        string          `json:"picture"`
+	AvgAccruacy    float64         `json:"avgAccuracy"`
 	AvgSpeed       float64         `json:"avgSpeed"`
 	BestSpeed      int             `json:"bestSpeed"`
 	MatchesPlayed  int             `json:"matchesPlayed"`
@@ -21,19 +22,12 @@ type PlayerRedis struct {
 	KeyboardsOwned map[string]bool `json:"keyboardsOwned"`
 }
 
-type PlayerGameRedis struct {
-	Id        string  `json:"id"`
-	Placement int     `json:"placement"`
-	Points    int     `json:"points"`
-	Accuracy  float64 `json:"accuracy"`
-}
-
 type GameRedis struct {
-	Id         string                     `json:"id"`
-	State      string                     `json:"state"`
-	TweetId    string                     `json:"tweetId"`
-	CreatorId  string                     `json:"creator"`
-	MaxPlayers int                        `json:"maxPlayers"`
-	TimeLimit  int                        `json:"timeLimit"`
-	Players    map[string]PlayerGameRedis `json:"players"`
+	Id         string          `json:"id"`
+	State      string          `json:"state"`
+	TweetId    string          `json:"tweetId"`
+	CreatorId  string          `json:"creator"`
+	MaxPlayers int             `json:"maxPlayers"`
+	TimeLimit  int             `json:"timeLimit"`
+	Players    map[string]bool `json:"players"`
 }

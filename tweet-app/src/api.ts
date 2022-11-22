@@ -13,7 +13,7 @@ const createGame = async (token: string) => {
   return data;
 };
 
-const joinGame = async (code: number, token: string) => {
+const joinGame = async (code: number) => {
   const response = await fetch(`${server}/joinGame?id=${code}`, {
     method: "GET",
     mode: "cors",
@@ -51,4 +51,58 @@ const login = async (name: string, email: string, picture: string) => {
   }
 };
 
-export { createGame, joinGame, login };
+const getPlayerStats = async (token: string) => {
+  const response = await fetch(`${server}/playerStats`, {
+    method: "GET",
+    mode: "cors",
+    headers: new Headers({
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    }),
+  });
+  let data: {
+    Points: number;
+    AvgSpeed: number;
+    BestSpeed: number;
+    MatchesWon: number;
+    AvgAccuracy: number;
+    MatchesPlayed: number;
+  } = await response.json();
+  return data;
+};
+
+const getPlayerKeyboards = async (token: string) => {
+  const response = await fetch(`${server}/playerKeyboards`, {
+    method: "GET",
+    mode: "cors",
+    headers: new Headers({
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    }),
+  });
+  let data: string[] = await response.json();
+  return data;
+};
+
+const changeName = async (token: string, name: string) => {
+  await fetch(`${server}/changeName`, {
+    method: "POST",
+    mode: "cors",
+    headers: new Headers({
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    }),
+    body: JSON.stringify({
+      name: name,
+    }),
+  });
+};
+
+export {
+  createGame,
+  joinGame,
+  login,
+  getPlayerStats,
+  getPlayerKeyboards,
+  changeName,
+};

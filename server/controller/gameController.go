@@ -71,8 +71,6 @@ func WebSocketHandler(w http.ResponseWriter, r *http.Request) {
 	defer conn.Close()
 
 	for {
-		// How will you handle the case where someone leaves the game after lobby
-		// Maybe set them as completed and their points to zero?
 		if err = conn.ReadJSON(&message); err != nil {
 			if websocket.IsUnexpectedCloseError(err) {
 				game.unregisterPlayer(player_id)
@@ -130,10 +128,33 @@ func WebSocketHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 
-func GetPlayerKeyboardsHandler(w http.ResponseWriter, r *http.Request) {
-
+func GetPlayerStatsHandler(w http.ResponseWriter, r *http.Request) {
+	player_id := r.Context().Value("player").(string)
+	result := database.GetPlayerStatsRedis(player_id)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(result)	
 }
 
-func GetPlayerMatchResultsHandler(w http.ResponseWriter, r *http.Request) {
 
+func GetPlayerKeyboardsHandler(w http.ResponseWriter, r *http.Request) {
+	player_id := r.Context().Value("player").(string)
+	result := database.GetPlayerKeyboardsRedis(player_id)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(result)	
+}
+
+func ChangePlayerName(w http.ResponseWriter, r *http.Request) {
+	type Body struct {
+		Name string `json:"name"`
+	}
+
+	var body Body
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		return
+	}
+
+	player_id := r.Context().Value("player").(string)
+	database.ChangePlayerNameRedis(player_id, body.Name)
+
+	w.WriteHeader(http.StatusOK)
 }

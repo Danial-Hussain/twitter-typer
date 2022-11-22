@@ -1,21 +1,39 @@
-import { login } from "./api";
 import useStorage from "./hooks";
 import jwt_decode from "jwt-decode";
 import { useContext, createContext } from "react";
+import { login, getPlayerStats, getPlayerKeyboards, changeName } from "./api";
 
-interface User {
+export interface Stats {
+  Points: number;
+  AvgSpeed: number;
+  BestSpeed: number;
+  MatchesWon: number;
+  AvgAccuracy: number;
+  MatchesPlayed: number;
+}
+
+export interface User {
   name: string;
   email: string;
   token: string;
   picture: string;
 }
 
-interface GoogleAuthResponse {
+export interface GoogleAuthResponse {
   clientId: string;
   client_id: string;
   credential: string;
   select_by: string;
 }
+
+const emptyStats: Stats = {
+  Points: 0,
+  AvgSpeed: 0,
+  BestSpeed: 0,
+  MatchesWon: 0,
+  AvgAccuracy: 0,
+  MatchesPlayed: 0,
+};
 
 const defaultGuest: User = {
   name: "guest",
@@ -26,9 +44,11 @@ const defaultGuest: User = {
 
 const AuthContext = createContext({
   user: defaultGuest,
-  signIn: (response: GoogleAuthResponse) => {},
+  signIn: async (response: GoogleAuthResponse) => {},
   signOut: () => {},
-  changeName: (username: string) => {},
+  changeName: async (username: string) => {},
+  getStats: async () => emptyStats,
+  getKeyboards: async () => [] as string[],
 });
 
 const useAuth = () => useContext(AuthContext);
@@ -59,15 +79,34 @@ const useProviderAuth = () => {
     setUser(userGuest);
   };
 
-  const changeName = (newName: string) => {
+  const changeName = async (newName: string) => {
     if (user.token === "") {
       setUser({ ...user, name: newName });
     } else {
+      await changeName(user.token);
       setUser({ ...user, name: newName });
     }
   };
 
-  return { user, signIn, signOut, changeName };
+  const getStats = async () => {
+    if (user.token === "") {
+      return emptyStats;
+    } else {
+      let data: Stats = await getPlayerStats(user.token);
+      return data;
+    }
+  };
+
+  const getKeyboards = async () => {
+    if (user.token === "") {
+      return [];
+    } else {
+      let data = await getPlayerKeyboards(user.token);
+      return data;
+    }
+  };
+
+  return { user, signIn, signOut, changeName, getStats, getKeyboards };
 };
 
 export { AuthContext, useAuth, useProviderAuth };

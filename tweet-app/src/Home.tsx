@@ -1,5 +1,5 @@
 import Layout from "./Layout";
-import { useAuth } from "./auth";
+import { Stats, useAuth } from "./auth";
 import { useEffect, useState } from "react";
 import { ArrowUpIcon, CheckIcon, EditIcon } from "@chakra-ui/icons";
 import { useNavigate } from "react-router-dom";
@@ -28,6 +28,7 @@ import {
   AccordionItem,
   AccordionPanel,
   HStack,
+  VStack,
 } from "@chakra-ui/react";
 
 const CreateGame = () => {
@@ -69,7 +70,6 @@ const CreateGame = () => {
 };
 
 const JoinGame = () => {
-  const { user } = useAuth();
   const [error, setError] = useState("");
   const [joinCode, setJoinCode] = useState<string>("");
 
@@ -78,7 +78,7 @@ const JoinGame = () => {
   const navigate = useNavigate();
 
   const join = async () => {
-    let result = await joinGame(parseInt(joinCode), user.token);
+    let result = await joinGame(parseInt(joinCode));
     if (result) navigate(`/game/${joinCode}`);
     else {
       setError("Invalid code");
@@ -123,25 +123,67 @@ const JoinGame = () => {
 };
 
 const Stats = () => {
-  const gamesPlayed = 0;
-  const gamesWon = 0;
-  const avgAccuracy = 0;
+  const { getStats } = useAuth();
+  const [stats, setStats] = useState<Stats | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      let result = await getStats();
+      setStats(result);
+    })();
+  }, []);
 
   return (
-    <StatGroup>
-      <Stat>
-        <StatLabel>{"Games Played"}</StatLabel>
-        <StatNumber>{gamesPlayed}</StatNumber>
-      </Stat>
-      <Stat>
-        <StatLabel>{"Games Won"}</StatLabel>
-        <StatNumber>{gamesWon}</StatNumber>
-      </Stat>
-      <Stat>
-        <StatLabel>{"Average Accuracy"}</StatLabel>
-        <StatNumber>{avgAccuracy}</StatNumber>
-      </Stat>
-    </StatGroup>
+    <VStack>
+      <StatGroup>
+        <Stat>
+          <StatLabel>{"Games Played"}</StatLabel>
+          <StatNumber>{stats?.MatchesPlayed || 0}</StatNumber>
+        </Stat>
+        <Stat>
+          <StatLabel>{"Games Won"}</StatLabel>
+          <StatNumber>{stats?.MatchesWon || 0}</StatNumber>
+        </Stat>
+        <Stat>
+          <StatLabel>{"Total Points"}</StatLabel>
+          <StatNumber>{stats?.Points || 0}</StatNumber>
+        </Stat>
+      </StatGroup>
+      <StatGroup>
+        <Stat>
+          <StatLabel>{"Average Speed"}</StatLabel>
+          <StatNumber>{stats?.AvgSpeed || 0}</StatNumber>
+        </Stat>
+        <Stat>
+          <StatLabel>{"Best Speed"}</StatLabel>
+          <StatNumber>{stats?.BestSpeed || 0}</StatNumber>
+        </Stat>
+        <Stat>
+          <StatLabel>{"Average Accuracy"}</StatLabel>
+          <StatNumber>{stats?.AvgAccuracy || 0}</StatNumber>
+        </Stat>
+      </StatGroup>
+    </VStack>
+  );
+};
+
+const Keyboards = () => {
+  const { getKeyboards } = useAuth();
+  const [keyboards, setKeyboards] = useState<string[]>([]);
+
+  useEffect(() => {
+    (async () => {
+      let result = await getKeyboards();
+      setKeyboards(result);
+    })();
+  }, []);
+
+  return (
+    <HStack>
+      {keyboards.map((k, i) => (
+        <Box key={i}>{k}</Box>
+      ))}
+    </HStack>
   );
 };
 
@@ -218,14 +260,14 @@ const Profile = () => {
               <TabList>
                 <Tab>{"Keyboards"}</Tab>
                 <Tab>{"Stats"}</Tab>
-                <Tab>{"Match History"}</Tab>
               </TabList>
               <TabPanels>
-                <TabPanel></TabPanel>
+                <TabPanel>
+                  <Keyboards />
+                </TabPanel>
                 <TabPanel>
                   <Stats />
                 </TabPanel>
-                <TabPanel></TabPanel>
               </TabPanels>
             </Tabs>
           </Flex>

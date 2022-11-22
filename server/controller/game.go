@@ -32,6 +32,7 @@ const (
 
 type PlayerGameStatus struct {
 	State            string
+	Speed            int
 	Points           int 
 	Placement        int
 	CorrectAnswers   int
@@ -153,16 +154,29 @@ func (g *Game) registerPlayer(message map[string]*json.RawMessage, conn *websock
 	}
 
 	g.Players[player_id] = NewPlayer(player_id, data.Name, len(g.Players) == 0, conn)
-	database.AddPlayerToGameRedis(g.Id, player_id, 0, 0, 0)
+	database.AddPlayerToGameRedis(g.Id, player_id)
 }
 
 
 func (g *Game) unregisterPlayer(player_id string) {
-	delete(g.Players, player_id)
-
 	if g.State == Lobby {
+		// If the player leaves in the lobby just remove them from the game
 		database.RemovePlayerFromGameRedis(g.Id, player_id)
+	} else if g.State != Finished {
+		// If the player leaves in the middle of the match save their result
+		correct := float64(g.Players[player_id].Status.CorrectAnswers)
+		incorrect := float64(g.Players[player_id].Status.IncorrectAnswers)
+
+		database.PlayerPlayedGameRedis(
+			player_id, 
+			g.Players[player_id].Status.Speed,
+			correct / (correct + incorrect),
+			g.Players[player_id].Status.Placement == 1,
+			g.Players[player_id].Status.Points,
+		)
 	}
+
+	delete(g.Players, player_id)
 }
 
 
@@ -349,7 +363,19 @@ func (g *Game) startFinish(player_id string) {
 	})
 
 	for i := range player_points {
-		g.Players[player_points[i]["Id"].(string)].Status.Placement = (i + 1) 
+		player_id := player_points[i]["Id"].(string)
+		g.Players[player_id].Status.Placement = (i + 1) 
+
+		correct := float64(g.Players[player_id].Status.CorrectAnswers)
+		incorrect := float64(g.Players[player_id].Status.IncorrectAnswers)
+
+		database.PlayerPlayedGameRedis(
+			player_points[i]["Id"].(string), 
+			g.Players[player_id].Status.Speed, 
+			correct / (correct + incorrect),
+			g.Players[player_id].Status.Placement == 1, 
+			g.Players[player_id].Status.Points, 
+		)
 	}
 
 	g.Winner = player_points[0]["Id"].(string)
@@ -361,13 +387,12 @@ func (g *Game) startFinish(player_id string) {
 	tmp["author"] = g.Author
 	tmp["authorHandle"] = g.AuthorHandle
 	result.Data = tmp
-
+	
 	if result_json, err := json.Marshal(result); err == nil {
 		g.broadcastMessage(result_json)
 	} 
 
 	g.sendActivePlayers(player_id)
-
 	g.removeGame()
 }
 

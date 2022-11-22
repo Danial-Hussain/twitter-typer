@@ -19,6 +19,9 @@ func main() {
 	r.HandleFunc("/signin", controller.SigninHandler).Methods("POST")
 	r.HandleFunc("/joinGame", controller.JoinGameHandler).Methods("Get")
 	r.HandleFunc("/joinRandom", controller.JoinRandomHandler).Methods("Get")
+	r.Handle("/changeName", middleware.PlayerCtx(http.HandlerFunc(controller.ChangePlayerName))).Methods("POST")
 	r.Handle("/createGame", middleware.PlayerCtx(http.HandlerFunc(controller.CreateGameHandler))).Methods("POST")
+	r.Handle("/playerStats", middleware.PlayerCtx(http.HandlerFunc(controller.GetPlayerStatsHandler))).Methods("GET")
+	r.Handle("/playerKeyboards", middleware.PlayerCtx(http.HandlerFunc(controller.GetPlayerKeyboardsHandler))).Methods("GET")
 	http.ListenAndServe("127.0.0.1:8080", handlers.CORS(originsOk, headersOk, methodsOk)(r))
 }
