@@ -227,7 +227,7 @@ const Countdown: React.FC<CountdownProps> = ({ timer, performAction }) => {
   useEffect(() => {
     countdownValue > 0
       ? setInterval(() => setCountdownValue(countdownValue - 1), 1000)
-      : performAction({ action: "startGame" });
+      : null;
   }, [countdownValue]);
 
   return (
@@ -495,6 +495,8 @@ interface FinishedProps {
 const Finished: React.FC<FinishedProps> = ({ gameManager }) => {
   const user = gameManager.players.find((p) => p.isUser === true);
 
+  console.log(gameManager.players);
+
   if (user === undefined) {
     return <Box>{"Hmmm... something went wrong"}</Box>;
   }
@@ -516,25 +518,25 @@ const Finished: React.FC<FinishedProps> = ({ gameManager }) => {
         borderColor={"gray.200"}
         backgroundColor={"gray.100"}
       >
-        <Box fontSize={"4xl"}>{"This tweet was written by..."}</Box>
-        <HStack spacing={"6"}>
-          <Box fontSize={"3xl"} fontWeight={"semibold"}>
-            {gameManager.tweet.author}
-          </Box>
-          <HStack px={"3"} py={"2"} rounded={"xl"} backgroundColor={"blue.300"}>
-            <Image src={"/twitter.svg"} width={"20px"} />
-            <Link
-              fontSize={"sm"}
-              color={"white"}
-              href={`https://twitter.com/${gameManager.tweet.authorHandle}`}
-            >
-              {"Follow on Twitter"}
-            </Link>
-          </HStack>
+        <Box fontSize={"4xl"} textAlign={"center"}>
+          {"This tweet was written by..."}
+        </Box>
+        <Box fontSize={"3xl"} fontWeight={"semibold"}>
+          {gameManager.tweet.author}
+        </Box>
+        <HStack px={"3"} py={"2"} rounded={"xl"} backgroundColor={"blue.300"}>
+          <Image src={"/twitter.svg"} width={"20px"} />
+          <Link
+            fontSize={"sm"}
+            color={"white"}
+            href={`https://twitter.com/${gameManager.tweet.authorHandle}`}
+          >
+            {"Follow on Twitter"}
+          </Link>
         </HStack>
         <Box
           p={"2"}
-          width={"2xl"}
+          width={{ base: "sm", md: "2xl" }}
           border={"1px"}
           rounded={"lg"}
           borderColor={"gray.300"}
@@ -548,34 +550,61 @@ const Finished: React.FC<FinishedProps> = ({ gameManager }) => {
           </Button>
         </Link>
       </VStack>
-      <VStack spacing={"8"} mt={"8"}>
+      <VStack spacing={"8"} mt={"8"} width={{ base: "sm", md: "2xl" }}>
         <Box fontSize={"3xl"} fontWeight={"semibold"}>
           {"Results"}
         </Box>
-        {gameManager.players
+        {[...gameManager.players]
           .sort((a, b) => b.points - a.points)
           .map((p, i) => (
             <HStack
               key={i}
+              p={"4"}
+              rounded={"md"}
               spacing={"12"}
               width={"full"}
               justify={"space-between"}
+              backgroundColor={p.isUser ? "twitter.100" : "white"}
             >
-              <Flex
-                width={"60px"}
-                height={"60px"}
-                fontSize={"xl"}
-                rounded={"full"}
-                border={"2px"}
-                align={"center"}
-                justify={"center"}
-                textAlign={"center"}
-                borderColor={"gray.300"}
-              >
-                {ordinal_suffix_of(p.placement)}
-              </Flex>
-              <img src={"/keyboard.jpg"} width={"250px"} />
-              <Box fontSize={"lg"}>{p.name}</Box>
+              <HStack spacing={"4"}>
+                <Flex
+                  width={"60px"}
+                  height={"60px"}
+                  fontSize={"xl"}
+                  rounded={"full"}
+                  border={"2px"}
+                  align={"center"}
+                  justify={"center"}
+                  textAlign={"center"}
+                  borderColor={"gray.500"}
+                >
+                  {ordinal_suffix_of(p.placement)}
+                </Flex>
+                <img src={"/keyboard.jpg"} width={"250px"} />
+              </HStack>
+              <VStack align={"end"}>
+                <Box fontSize={"lg"}>{p.name}</Box>
+                <HStack>
+                  <Box
+                    px={"2"}
+                    rounded={"md"}
+                    bg={"twitter.300"}
+                    color={"twitter.800"}
+                    fontWeight={"semibold"}
+                  >
+                    {Number(p.points).toFixed(2)} {"points"}
+                  </Box>
+                  <Box
+                    px={"2"}
+                    rounded={"md"}
+                    bg={"twitter.300"}
+                    color={"twitter.800"}
+                    fontWeight={"semibold"}
+                  >
+                    {Number(p.speed).toFixed(2)} {"wpm"}
+                  </Box>
+                </HStack>
+              </VStack>
             </HStack>
           ))}
       </VStack>

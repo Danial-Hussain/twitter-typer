@@ -107,11 +107,6 @@ func WebSocketHandler(w http.ResponseWriter, r *http.Request) {
 				game.startCountdown(conn, player_id)
 			}
 
-		case Countdown:
-			if action == "startGame" {
-				game.startGame(conn, player_id)
-			}
-
 		case Started:
 			if action == "playerMove" {
 				game.playerMove(message, conn, player_id)
@@ -155,6 +150,5 @@ func ChangePlayerName(w http.ResponseWriter, r *http.Request) {
 
 	player_id := r.Context().Value("player").(string)
 	database.ChangePlayerNameRedis(player_id, body.Name)
-
 	w.WriteHeader(http.StatusOK)
 }

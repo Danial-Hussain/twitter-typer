@@ -28,7 +28,6 @@ import {
   AccordionItem,
   AccordionPanel,
   HStack,
-  VStack,
 } from "@chakra-ui/react";
 
 const CreateGame = () => {
@@ -48,7 +47,7 @@ const CreateGame = () => {
       border={"2px"}
       boxShadow={"lg"}
       borderColor={"gray.200"}
-      width={{ base: "md", md: "lg" }}
+      width={{ base: "sm", md: "sm", lg: "md" }}
     >
       <Box mb={"5"} fontSize={"4xl"} color={"blue.800"} textAlign={"center"}>
         {"Create a Game"}
@@ -96,7 +95,7 @@ const JoinGame = () => {
       rounded={"md"}
       boxShadow={"lg"}
       borderColor={"gray.200"}
-      width={{ base: "md", md: "lg" }}
+      width={{ base: "sm", md: "sm", lg: "md" }}
     >
       <Box mb={"5"} fontSize={"4xl"} color={"gray.800"} textAlign={"center"}>
         {title}
@@ -122,7 +121,7 @@ const JoinGame = () => {
   );
 };
 
-const Stats = () => {
+const StatsPanel = () => {
   const { getStats } = useAuth();
   const [stats, setStats] = useState<Stats | null>(null);
 
@@ -134,7 +133,7 @@ const Stats = () => {
   }, []);
 
   return (
-    <VStack>
+    <>
       <StatGroup>
         <Stat>
           <StatLabel>{"Games Played"}</StatLabel>
@@ -149,10 +148,13 @@ const Stats = () => {
           <StatNumber>{stats?.Points || 0}</StatNumber>
         </Stat>
       </StatGroup>
-      <StatGroup>
+      <StatGroup mt={"5"}>
         <Stat>
           <StatLabel>{"Average Speed"}</StatLabel>
-          <StatNumber>{stats?.AvgSpeed || 0}</StatNumber>
+          <StatNumber>
+            {Number((stats?.AvgSpeed || 0) * 100).toFixed(2)}
+            {" wpm"}
+          </StatNumber>
         </Stat>
         <Stat>
           <StatLabel>{"Best Speed"}</StatLabel>
@@ -160,14 +162,17 @@ const Stats = () => {
         </Stat>
         <Stat>
           <StatLabel>{"Average Accuracy"}</StatLabel>
-          <StatNumber>{stats?.AvgAccuracy || 0}</StatNumber>
+          <StatNumber>
+            {Number((stats?.AvgAccuracy || 0) * 100).toFixed(2)}
+            {"%"}
+          </StatNumber>
         </Stat>
       </StatGroup>
-    </VStack>
+    </>
   );
 };
 
-const Keyboards = () => {
+const KeyboardsPanel = () => {
   const { getKeyboards } = useAuth();
   const [keyboards, setKeyboards] = useState<string[]>([]);
 
@@ -214,7 +219,11 @@ const Profile = () => {
             flexDir={"column"}
             borderColor={"gray.200"}
           >
-            <HStack align={"center"} justify={"space-between"}>
+            <Flex
+              align={"center"}
+              justify={"space-between"}
+              flexDir={{ base: "column", md: "row" }}
+            >
               <Flex align={"center"}>
                 <Box fontSize={"xl"} color={"gray.600"} mr={"2"}>
                   {"Your Username:"}
@@ -231,13 +240,19 @@ const Profile = () => {
                         variant={"unstyled"}
                         onClick={() => changeName(tmpName)}
                       >
-                        <CheckIcon
+                        <Flex
                           p={"1"}
+                          w={"48px"}
                           ml={"12px"}
                           rounded={"md"}
+                          fontSize={"sm"}
                           bg={"green.100"}
+                          align={"center"}
+                          justify={"center"}
                           color={"green.600"}
-                        />
+                        >
+                          {"Save"}
+                        </Flex>
                       </Button>
                     )}
                   </Flex>
@@ -255,7 +270,7 @@ const Profile = () => {
                   />
                 </Flex>
               )}
-            </HStack>
+            </Flex>
             <Tabs mt={"4"} variant={"soft-rounded"}>
               <TabList>
                 <Tab>{"Keyboards"}</Tab>
@@ -263,10 +278,10 @@ const Profile = () => {
               </TabList>
               <TabPanels>
                 <TabPanel>
-                  <Keyboards />
+                  <KeyboardsPanel />
                 </TabPanel>
                 <TabPanel>
-                  <Stats />
+                  <StatsPanel />
                 </TabPanel>
               </TabPanels>
             </Tabs>

@@ -15,10 +15,10 @@ type PlayerRedis struct {
 	Picture        string          `json:"picture"`
 	AvgAccruacy    float64         `json:"avgAccuracy"`
 	AvgSpeed       float64         `json:"avgSpeed"`
-	BestSpeed      int             `json:"bestSpeed"`
+	BestSpeed      float64         `json:"bestSpeed"`
 	MatchesPlayed  int             `json:"matchesPlayed"`
 	MatchesWon     int             `json:"matchesWon"`
-	Points         int             `json:"points"`
+	Points         float64         `json:"points"`
 	KeyboardsOwned map[string]bool `json:"keyboardsOwned"`
 }
 

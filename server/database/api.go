@@ -126,7 +126,7 @@ func CreatePlayerRedis(name string, email string, picture string) (string, error
 	}
 }
 
-func PlayerPlayedGameRedis(player_id string, speed int, accuracy float64, won bool, points int) error {
+func PlayerPlayedGameRedis(player_id string, speed float64, accuracy float64, won bool, points float64) error {
 	data, err := RedisClient.Get(Ctx, player_id).Result()
 
 	if err != nil {

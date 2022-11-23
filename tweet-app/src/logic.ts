@@ -5,7 +5,6 @@ import { useState, useEffect } from "react";
 export type Action =
   | RegisterPlayerAction
   | IsPlayerCreatorAction
-  | StartGameAction
   | StartCountdownAction
   | PlayerMoveAction
   | PlayerGuessAction
@@ -22,10 +21,6 @@ interface IsPlayerCreatorAction {
 
 interface StartCountdownAction {
   action: "startCountdown";
-}
-
-interface StartGameAction {
-  action: "startGame";
 }
 
 interface PlayerMoveAction {
@@ -103,6 +98,7 @@ export interface Tweet {
 
 export interface Player {
   name: string;
+  speed: number;
   points: number;
   isUser: boolean;
   placement: number;

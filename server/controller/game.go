@@ -6,6 +6,8 @@ import (
 	"log"
 	"server/database"
 	"sort"
+	"strings"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -32,10 +34,12 @@ const (
 
 type PlayerGameStatus struct {
 	State            string
-	Speed            int
-	Points           int 
+	Points           float64 
+	Speed            float64
 	Placement        int
 	CorrectAnswers   int
+	TypingEndTime    time.Time
+	TypingStartTime  time.Time
 	IncorrectAnswers int 
 	CurrentLetterIdx int
 }
@@ -43,6 +47,7 @@ type PlayerGameStatus struct {
 
 func NewPlayerGameStatus() *PlayerGameStatus {
 	return &PlayerGameStatus{
+		Speed: 0,
 		Points: 0, 
 		Placement: 0,
 		State: Typing,
@@ -79,6 +84,7 @@ type Game struct {
 	MaxPlayers    int
 	State         string
 	Tweet         string
+	TweetWordCnt  int
 	Author        string
 	AuthorHandle  string
 	AuthorChoices []string
@@ -87,7 +93,7 @@ type Game struct {
 
 
 func NewGame(player_id string) (*Game, error) {
-	tweet_id, tweet, author, author_handle, choices := generateTweet()
+	tweet_id, tweet, tweet_word_count, author, author_handle, choices := generateTweet()
 
 	if game_id, err := database.CreateGameRedis(Lobby, tweet_id, player_id, MaxPlayersInGame, RoundTimeLimit); err != nil {
 		return nil, err
@@ -101,6 +107,7 @@ func NewGame(player_id string) (*Game, error) {
 			TimeLimit: RoundTimeLimit,
 			AuthorHandle: author_handle,
 			MaxPlayers: MaxPlayersInGame,
+			TweetWordCnt: tweet_word_count,
 			Players: make(map[string]*Player), 
 		}
 		return &game, nil
@@ -159,38 +166,26 @@ func (g *Game) registerPlayer(message map[string]*json.RawMessage, conn *websock
 
 
 func (g *Game) unregisterPlayer(player_id string) {
-	if g.State == Lobby {
-		// If the player leaves in the lobby just remove them from the game
-		database.RemovePlayerFromGameRedis(g.Id, player_id)
-	} else if g.State != Finished {
-		// If the player leaves in the middle of the match save their result
-		correct := float64(g.Players[player_id].Status.CorrectAnswers)
-		incorrect := float64(g.Players[player_id].Status.IncorrectAnswers)
-
-		database.PlayerPlayedGameRedis(
-			player_id, 
-			g.Players[player_id].Status.Speed,
-			correct / (correct + incorrect),
-			g.Players[player_id].Status.Placement == 1,
-			g.Players[player_id].Status.Points,
-		)
-	}
-
+	/*
+		If the player leaves after the game has started should we still take their current stats?
+	*/
+	database.RemovePlayerFromGameRedis(g.Id, player_id)
 	delete(g.Players, player_id)
 }
 
 
 func (g *Game) sendActivePlayers(player_id string) {
 	type PlayerInfo struct {
-		Name string `json:"name"`
-		Points int `json:"points"`
-		State string `json:"state"`
-		IsUser bool `json:"isUser"`
-		Placement int `json:"placement"`
-		IsCreator bool `json:"isCreator"`
-		CorrectAnswers int `json:"correctAnswers"`
-		IncorrectAnswers int `json:"incorrectAnswers"` 
-		CurrentLetterIdx int `json:"currentLetterIdx"`
+		Name             string  `json:"name"`
+		Speed            float64 `json:"speed"`
+		Points           float64 `json:"points"`
+		State            string  `json:"state"`
+		IsUser           bool    `json:"isUser"`
+		Placement        int     `json:"placement"`
+		IsCreator        bool    `json:"isCreator"`
+		CorrectAnswers   int     `json:"correctAnswers"`
+		IncorrectAnswers int     `json:"incorrectAnswers"` 
+		CurrentLetterIdx int     `json:"currentLetterIdx"`
 	}
 	
 	for i := range g.Players {
@@ -204,9 +199,10 @@ func (g *Game) sendActivePlayers(player_id string) {
 				PlayerInfo{
 					Name: g.Players[j].Name, 
 					IsCreator: g.Players[j].Creator,
-					State: g.Players[i].Status.State,
+					Speed: g.Players[j].Status.Speed,
+					State: g.Players[j].Status.State,
 					Points: g.Players[j].Status.Points,
-					Placement: g.Players[i].Status.Placement,
+					Placement: g.Players[j].Status.Placement,
 					IsUser: g.Players[i].Id == g.Players[j].Id,
 					CorrectAnswers: g.Players[j].Status.CorrectAnswers,
 					IncorrectAnswers: g.Players[j].Status.IncorrectAnswers,
@@ -219,7 +215,6 @@ func (g *Game) sendActivePlayers(player_id string) {
 
 		result_json, err := json.Marshal(result)	
 		if err != nil {
-			fmt.Println("why")
 			return
 		}
 		
@@ -230,12 +225,11 @@ func (g *Game) sendActivePlayers(player_id string) {
 }
 
 
-func (g *Game) startCountdown(conn *websocket.Conn, player_id string){ 
+func (g *Game) startCountdown(conn *websocket.Conn, player_id string)  { 
 	if len(g.Players) == 1 {
 		g.sendError(conn, player_id, "Can't start game with one player")
-		return
+		return 
 	}
-
 
 	var result Response
 	result.Action = "startCountdown"
@@ -243,14 +237,18 @@ func (g *Game) startCountdown(conn *websocket.Conn, player_id string){
 
 	result_json, err := json.Marshal(result)
 	if err != nil {
-		return
+		return 
 	}
 
 	g.State = Countdown
 	g.broadcastMessage(result_json)
 	database.UpdateGameStatusRedis(g.Id, Countdown)
-}
 
+	go func() {
+		time.Sleep(10 * time.Second)
+		g.startGame(conn, player_id)
+	}()
+}
 
 func (g *Game) startGame(conn *websocket.Conn, player_id string) {
 	var result Response 
@@ -273,13 +271,20 @@ func (g *Game) startGame(conn *websocket.Conn, player_id string) {
 		database.UpdateGameStatusRedis(g.Id, Started)
 	}
 
-	// timer := time.AfterFunc(time.Second*60, func() {
-	// 	g.startFinish(player_id)
-   // })
+	for i := range g.Players {
+		g.Players[i].Status.TypingStartTime = time.Now()
+	}
 
-	//   defer timer.Stop()
-
-	// After the timer finishes we should push everyone who is still on typing mode to guess mode
+	go func() {
+		time.Sleep(time.Duration(g.TimeLimit) * time.Second)
+		for i := range g.Players {
+			if g.Players[i].Status.State == Typing {
+				g.Players[i].Status.TypingEndTime = time.Now()
+				g.Players[i].Status.State = Guessing
+			}
+		}
+		g.sendActivePlayers(player_id)
+	}()
 }
 
 
@@ -306,6 +311,7 @@ func (g *Game) playerMove(message map[string]*json.RawMessage, conn *websocket.C
 	}
 
 	if g.Players[player_id].Status.CurrentLetterIdx == len(g.Tweet) {
+		g.Players[player_id].Status.TypingEndTime = time.Now()
 		g.Players[player_id].Status.State = Guessing
 	}
 
@@ -352,6 +358,15 @@ func (g *Game) startFinish(player_id string) {
 	var player_points []map[string]interface{}
 
 	for i := range g.Players {
+		startTime := g.Players[i].Status.TypingStartTime
+		endTime := g.Players[i].Status.TypingEndTime
+
+		words := wordsCompleted(g.Tweet, g.Players[i].Status.CurrentLetterIdx)
+		words_per_minute := float64(words) / endTime.Sub(startTime).Minutes()
+
+		g.Players[i].Status.Points += words_per_minute
+		g.Players[i].Status.Speed = words_per_minute
+
 		val := make(map[string]interface{})
 		val["id"] = g.Players[i].Id
 		val["points"] = g.Players[i].Status.Points
@@ -359,26 +374,28 @@ func (g *Game) startFinish(player_id string) {
 	}
 
 	sort.Slice(player_points, func(i, j int) bool { 
-		return player_points[i]["Points"].(int) > player_points[j]["Player_Points"].(int)
+		return player_points[i]["points"].(float64) > player_points[j]["points"].(float64)
 	})
 
+	fmt.Println(player_points)
+
 	for i := range player_points {
-		player_id := player_points[i]["Id"].(string)
+		player_id := player_points[i]["id"].(string)
 		g.Players[player_id].Status.Placement = (i + 1) 
 
 		correct := float64(g.Players[player_id].Status.CorrectAnswers)
 		incorrect := float64(g.Players[player_id].Status.IncorrectAnswers)
 
 		database.PlayerPlayedGameRedis(
-			player_points[i]["Id"].(string), 
+			player_points[i]["id"].(string), 
 			g.Players[player_id].Status.Speed, 
 			correct / (correct + incorrect),
 			g.Players[player_id].Status.Placement == 1, 
-			g.Players[player_id].Status.Points, 
+			g.Players[player_id].Status.Points + g.Players[player_id].Status.Speed, 
 		)
 	}
 
-	g.Winner = player_points[0]["Id"].(string)
+	g.Winner = player_points[0]["id"].(string)
 
 	var result Response
 	result.Action = "startFinish"
@@ -409,4 +426,13 @@ func (g *Game) countCompletedPlayers() int {
 		}
 	}
 	return count
+}
+
+func wordsCompleted(tweet string, currentIdx int) int {
+	tweet_subset := tweet[0:currentIdx]
+	words := len(strings.Split(tweet_subset, " "))
+	if currentIdx + 1 < len(tweet) && string(tweet[currentIdx + 1]) != " " {
+		words -= 1
+	}
+	return words
 }

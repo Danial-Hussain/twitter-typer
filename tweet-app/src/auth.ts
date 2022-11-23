@@ -1,7 +1,12 @@
 import useStorage from "./hooks";
 import jwt_decode from "jwt-decode";
 import { useContext, createContext } from "react";
-import { login, getPlayerStats, getPlayerKeyboards, changeName } from "./api";
+import {
+  login,
+  getPlayerStats,
+  getPlayerKeyboards,
+  changePlayerName,
+} from "./api";
 
 export interface Stats {
   Points: number;
@@ -83,7 +88,7 @@ const useProviderAuth = () => {
     if (user.token === "") {
       setUser({ ...user, name: newName });
     } else {
-      await changeName(user.token);
+      await changePlayerName(user.token, newName);
       setUser({ ...user, name: newName });
     }
   };

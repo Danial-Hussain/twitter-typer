@@ -84,7 +84,7 @@ const getPlayerKeyboards = async (token: string) => {
   return data;
 };
 
-const changeName = async (token: string, name: string) => {
+const changePlayerName = async (token: string, name: string) => {
   await fetch(`${server}/changeName`, {
     method: "POST",
     mode: "cors",
@@ -104,5 +104,5 @@ export {
   login,
   getPlayerStats,
   getPlayerKeyboards,
-  changeName,
+  changePlayerName,
 };
