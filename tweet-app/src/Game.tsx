@@ -412,6 +412,7 @@ const Game: React.FC<GameProps> = ({ gameManager, performAction }) => {
   }, []);
 
   const type = (ev: KeyboardEvent) => {
+    if (ev.key == " " && ev.target == document.body) ev.preventDefault();
     validKey(ev.key) &&
       performAction({ action: "playerMove", data: { key: ev.key } });
   };
