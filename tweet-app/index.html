@@ -20,6 +20,19 @@
     />
     <script src="https://accounts.google.com/gsi/client" async defer></script>
   </head>
+  <script
+    async
+    src="https://www.googletagmanager.com/gtag/js?id=G-L1K460FDXF"
+  ></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() {
+      dataLayer.push(arguments);
+    }
+    gtag("js", new Date());
+
+    gtag("config", "G-L1K460FDXF");
+  </script>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
