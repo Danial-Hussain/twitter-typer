@@ -1,9 +1,10 @@
 import Layout from "./Layout";
+import { Keyboard, KeyboardData } from "./Keyboards";
 import { Stats, useAuth } from "./auth";
 import { useEffect, useState } from "react";
-import { ArrowUpIcon, CheckIcon, EditIcon } from "@chakra-ui/icons";
-import { useNavigate } from "react-router-dom";
 import { createGame, joinGame } from "./api";
+import { Link, useNavigate } from "react-router-dom";
+import { ArrowUpIcon, EditIcon } from "@chakra-ui/icons";
 
 import {
   Button,
@@ -28,6 +29,7 @@ import {
   AccordionItem,
   AccordionPanel,
   HStack,
+  VStack,
 } from "@chakra-ui/react";
 
 const CreateGame = () => {
@@ -145,20 +147,22 @@ const StatsPanel = () => {
         </Stat>
         <Stat>
           <StatLabel>{"Total Points"}</StatLabel>
-          <StatNumber>{stats?.Points || 0}</StatNumber>
+          <StatNumber>{Number(stats?.Points || 0).toFixed(2)}</StatNumber>
         </Stat>
       </StatGroup>
       <StatGroup mt={"5"}>
         <Stat>
           <StatLabel>{"Average Speed"}</StatLabel>
           <StatNumber>
-            {Number((stats?.AvgSpeed || 0) * 100).toFixed(2)}
+            {Number(stats?.AvgSpeed || 0).toFixed(2)}
             {" wpm"}
           </StatNumber>
         </Stat>
         <Stat>
           <StatLabel>{"Best Speed"}</StatLabel>
-          <StatNumber>{stats?.BestSpeed || 0}</StatNumber>
+          <StatNumber>
+            {Number(stats?.BestSpeed || 0).toFixed(2)} wpm
+          </StatNumber>
         </Stat>
         <Stat>
           <StatLabel>{"Average Accuracy"}</StatLabel>
@@ -173,22 +177,69 @@ const StatsPanel = () => {
 };
 
 const KeyboardsPanel = () => {
-  const { getKeyboards } = useAuth();
-  const [keyboards, setKeyboards] = useState<string[]>([]);
+  const { getKeyboards, changeKeyboard } = useAuth();
+  const [keyboards, setKeyboards] = useState<KeyboardData[]>([]);
 
   useEffect(() => {
     (async () => {
       let result = await getKeyboards();
       setKeyboards(result);
     })();
-  }, []);
+  }, [keyboards]);
 
   return (
-    <HStack>
-      {keyboards.map((k, i) => (
-        <Box key={i}>{k}</Box>
-      ))}
-    </HStack>
+    <>
+      <HStack justify={"space-between"} align={"start"}>
+        <Box fontWeight={"semibold"} color={"gray.600"}>
+          {"Select a keyboard"}
+        </Box>
+        <Link to={"/keyboards"}>
+          <Box>{"Get more keyboards"}</Box>
+        </Link>
+      </HStack>
+      <HStack>
+        {keyboards.map((k, i) => (
+          <VStack spacing={-4}>
+            <Box
+              p={"2"}
+              key={i}
+              rounded={"xl"}
+              cursor={"pointer"}
+              _hover={{
+                transform: "scale(1.1)",
+                transitionDuration: "0.2s",
+                transitionTimingFunction: "ease-in-out",
+              }}
+              onClick={() => {
+                changeKeyboard(k.id);
+                setKeyboards([...keyboards]);
+              }}
+            >
+              <Keyboard
+                key={i}
+                width={"128px"}
+                keyboardData={k}
+                height={"128px"}
+                showDetails={false}
+                borderWidth={"1px"}
+              />
+            </Box>
+            {k.selected && (
+              <Box
+                px={"8px"}
+                py={"1px"}
+                rounded={"md"}
+                fontSize={"sm"}
+                bg={"twitter.100"}
+                color={"twitter.500"}
+              >
+                {"Selected"}
+              </Box>
+            )}
+          </VStack>
+        ))}
+      </HStack>
+    </>
   );
 };
 

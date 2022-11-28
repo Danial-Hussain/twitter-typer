@@ -52,11 +52,23 @@ func CreateGameHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func GetAllKeyboardsHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(Keyboards)
+}
+
+
 func WebSocketHandler(w http.ResponseWriter, r *http.Request) {
 	game_id := database.GamePrefix + r.URL.Query().Get("id")
 	token := r.URL.Query().Get("token")
 
-	player_id := PlayerOrGuest(token)
+	player_id, player_type := PlayerOrGuest(token)
+	player_keyboard := Keyboards[0]
+
+	if player_type == "player" {
+		keyboard_id := database.GetPlayerSelectedKeyboard(player_id)
+		player_keyboard = Keyboards[keyboard_id]
+	} 
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 
@@ -98,7 +110,7 @@ func WebSocketHandler(w http.ResponseWriter, r *http.Request) {
 		switch game.State {
 		case Lobby:
 			if action == "registerPlayer" {
-				game.registerPlayer(message, conn, player_id)
+				game.registerPlayer(message, conn, player_id, player_keyboard)
 				game.sendActivePlayers(player_id)
 			}
 
@@ -134,8 +146,18 @@ func GetPlayerStatsHandler(w http.ResponseWriter, r *http.Request) {
 func GetPlayerKeyboardsHandler(w http.ResponseWriter, r *http.Request) {
 	player_id := r.Context().Value("player").(string)
 	result := database.GetPlayerKeyboardsRedis(player_id)
+	var keyboards []struct{ Selected bool `json:"selected"`; Keyboard}
+
+	for i := range result {
+		keyboard_id := result[i].KeyboardId
+		keyboards = append(keyboards, struct{ Selected bool `json:"selected"`; Keyboard }{
+			Selected: result[i].Selected, 
+			Keyboard: Keyboards[keyboard_id],
+		})
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)	
+	json.NewEncoder(w).Encode(keyboards)	
 }
 
 func ChangePlayerName(w http.ResponseWriter, r *http.Request) {
@@ -150,5 +172,20 @@ func ChangePlayerName(w http.ResponseWriter, r *http.Request) {
 
 	player_id := r.Context().Value("player").(string)
 	database.ChangePlayerNameRedis(player_id, body.Name)
+	w.WriteHeader(http.StatusOK)
+}
+
+func ChangePlayerKeyboard(w http.ResponseWriter, r *http.Request) {
+	type Body struct {
+		KeyboardId int `json:"keyboardId"`
+	}
+
+	var body Body 
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		return
+	}
+
+	player_id := r.Context().Value("player").(string)
+	database.ChangePlayerKeyboard(player_id, body.KeyboardId)
 	w.WriteHeader(http.StatusOK)
 }

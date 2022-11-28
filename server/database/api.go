@@ -117,7 +117,9 @@ func CreatePlayerRedis(name string, email string, picture string) (string, error
 	player.MatchesWon = 0
 	player.AvgAccruacy = 0
 	player.MatchesPlayed = 0
-	player.KeyboardsOwned = make(map[string]bool )
+	player.SelectedKeyboardId = 0
+	player.KeyboardsOwned = make(map[int]bool)
+	player.KeyboardsOwned[0] = true
 
 	if player_json, err := json.Marshal(player); err != nil {
 		return "", err
@@ -179,8 +181,23 @@ func GetPlayerStatsRedis(player_id string) map[string]interface{} {
 	return result
 }
 
-func GetPlayerKeyboardsRedis(player_id string) []string {
-	result := []string{}
+func GetPlayerSelectedKeyboard(player_id string) int {
+	data, err := RedisClient.Get(Ctx, player_id).Result()
+
+	if err != nil {
+		return 0
+	}
+
+	var player PlayerRedis
+	if err = json.Unmarshal([]byte(data), &player); err != nil {
+		return 0
+	}	
+	
+	return player.SelectedKeyboardId
+}
+
+func GetPlayerKeyboardsRedis(player_id string) []struct{ KeyboardId int; Selected bool} {
+	result := []struct{ KeyboardId int; Selected bool}{}
 
 	data, err := RedisClient.Get(Ctx, player_id).Result()
 
@@ -194,9 +211,13 @@ func GetPlayerKeyboardsRedis(player_id string) []string {
 	}
 
 	for i := range player.KeyboardsOwned {
-		if player.KeyboardsOwned[i] {
-			result = append(result, i)
-		}
+		result = append(
+			result, 
+			struct{ KeyboardId int; Selected bool}{
+				KeyboardId: i, 
+				Selected: i == player.SelectedKeyboardId,
+			 },
+		)
 	}
 
 	return result
@@ -215,6 +236,29 @@ func ChangePlayerNameRedis(player_id, new_name string) error {
 	}
 
 	player.Name = new_name
+
+	if player_json, err := json.Marshal(player); err != nil {
+		return err
+	} else {
+		return RedisClient.Set(Ctx, player_id, player_json, 0).Err()
+	}
+}
+
+func ChangePlayerKeyboard(player_id string, new_keyboard_id int) error {
+	data, err := RedisClient.Get(Ctx, player_id).Result()
+
+	if err != nil {
+		return err
+	}
+
+	var player PlayerRedis
+	if err = json.Unmarshal([]byte(data), &player); err != nil {
+		return err
+	}
+
+	if _, ok := player.KeyboardsOwned[new_keyboard_id]; ok {
+		player.SelectedKeyboardId = new_keyboard_id
+	}
 
 	if player_json, err := json.Marshal(player); err != nil {
 		return err

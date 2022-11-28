@@ -64,16 +64,24 @@ type Player struct {
 	Creator bool
 	Conn    *websocket.Conn
 	Status  PlayerGameStatus
+	Keyboard Keyboard
 }
 
 
-func NewPlayer(id string, name string, creator bool, conn *websocket.Conn) *Player {
+func NewPlayer(
+	id string, 
+	name string, 
+	creator bool, 
+	conn *websocket.Conn, 
+	keyboard Keyboard,
+) *Player {
 	return &Player{
 		Id: id, 
 		Name: name, 
 		Conn: conn, 
 		Creator: creator,
 		Status: *NewPlayerGameStatus(),
+		Keyboard: keyboard,
 	}
 }
 
@@ -138,7 +146,12 @@ func (g *Game) sendError(conn *websocket.Conn, player_id string, message string)
 }
 
 
-func (g *Game) registerPlayer(message map[string]*json.RawMessage, conn *websocket.Conn, player_id string) {
+func (g *Game) registerPlayer(
+	message map[string]*json.RawMessage, 
+	conn *websocket.Conn, 
+	player_id string, 
+	keyboard Keyboard,
+) {
 	if len(g.Players) == g.MaxPlayers {
 		g.sendError(conn, player_id, "Too many players")
 		return
@@ -160,7 +173,7 @@ func (g *Game) registerPlayer(message map[string]*json.RawMessage, conn *websock
 		return
 	}
 
-	g.Players[player_id] = NewPlayer(player_id, data.Name, len(g.Players) == 0, conn)
+	g.Players[player_id] = NewPlayer(player_id, data.Name, len(g.Players) == 0, conn, keyboard)
 	database.AddPlayerToGameRedis(g.Id, player_id)
 }
 
@@ -177,6 +190,7 @@ func (g *Game) unregisterPlayer(player_id string) {
 func (g *Game) sendActivePlayers(player_id string) {
 	type PlayerInfo struct {
 		Name             string  `json:"name"`
+		KeyboardLink     string  `json:"keyboardLink"`
 		Speed            float64 `json:"speed"`
 		Points           float64 `json:"points"`
 		State            string  `json:"state"`
@@ -205,6 +219,7 @@ func (g *Game) sendActivePlayers(player_id string) {
 					Placement: g.Players[j].Status.Placement,
 					IsUser: g.Players[i].Id == g.Players[j].Id,
 					CorrectAnswers: g.Players[j].Status.CorrectAnswers,
+					KeyboardLink: g.Players[j].Keyboard.ClientImageLink,
 					IncorrectAnswers: g.Players[j].Status.IncorrectAnswers,
 					CurrentLetterIdx: g.Players[j].Status.CurrentLetterIdx,
 				})

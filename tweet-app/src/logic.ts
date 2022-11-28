@@ -104,6 +104,7 @@ export interface Player {
   placement: number;
   isCreator: boolean;
   state: PlayerState;
+  keyboardLink: string;
   correctAnswers: number;
   incorrectAnswers: number;
   currentLetterIdx: number;

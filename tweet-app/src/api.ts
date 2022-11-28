@@ -1,4 +1,5 @@
 import { server } from "./config";
+import { KeyboardData } from "./Keyboards";
 
 const createGame = async (token: string) => {
   const response = await fetch(`${server}/createGame`, {
@@ -80,7 +81,7 @@ const getPlayerKeyboards = async (token: string) => {
       "Content-Type": "application/json",
     }),
   });
-  let data: string[] = await response.json();
+  let data: KeyboardData[] = await response.json();
   return data;
 };
 
@@ -98,6 +99,32 @@ const changePlayerName = async (token: string, name: string) => {
   });
 };
 
+const changePlayerKeyboard = async (token: string, keyboardId: number) => {
+  await fetch(`${server}/changeKeyboard`, {
+    method: "POST",
+    mode: "cors",
+    headers: new Headers({
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    }),
+    body: JSON.stringify({
+      keyboardId: keyboardId,
+    }),
+  });
+};
+
+const getAllKeyboards = async () => {
+  let response = await fetch(`${server}/keyboards`, {
+    method: "GET",
+    mode: "cors",
+    headers: new Headers({
+      "Content-Type": "application/json",
+    }),
+  });
+  let data: KeyboardData[] = await response.json();
+  return data;
+};
+
 export {
   createGame,
   joinGame,
@@ -105,4 +132,6 @@ export {
   getPlayerStats,
   getPlayerKeyboards,
   changePlayerName,
+  changePlayerKeyboard,
+  getAllKeyboards,
 };

@@ -82,18 +82,21 @@ func ParseJWT(token_str string) (*JWTClaims, error) {
 }
 
 
-func PlayerOrGuest(token string) string {
+func PlayerOrGuest(token string) (string, string) {
 	claims, err := ParseJWT(token)
 
 	var player_id string
+	var player_type string
 
 	if err != nil {
 		// Guest player
 		player_id = database.GuestPrefix + uuid.NewV4().String()
+		player_type = "guest"
 	} else {
 		// Player already exists
 		player_id = claims.Id
+		player_type = "player" 
 	}
 
-	return player_id
+	return player_id, player_type
 }

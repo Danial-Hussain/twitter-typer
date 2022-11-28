@@ -42,6 +42,7 @@ import {
   HStack,
 } from "@chakra-ui/react";
 import { useAuth } from "./auth";
+import { Keyboard } from "./Keyboards";
 
 interface LobbyProps {
   gameManager: GameManager;
@@ -436,7 +437,7 @@ const Game: React.FC<GameProps> = ({ gameManager, performAction }) => {
       <Divider orientation="horizontal" my={"4"} />
       <Box>
         <Flex align={"start"} mt={"4"}>
-          <img src={"/keyboard.jpg"} width={"250px"} />
+          <img src={user.keyboardLink} width={"128px"} height={"128px"} />
           <Flex ml={8} flexDir={"column"} align={"start"} justify={"end"}>
             <Box textAlign={"center"} fontWeight={"semibold"}>
               {user.name}
@@ -452,7 +453,7 @@ const Game: React.FC<GameProps> = ({ gameManager, performAction }) => {
       </Box>
       {opps.map((opp, i) => (
         <Flex align={"start"} key={i} mt={"4"}>
-          <img src={"/keyboard.jpg"} width={"250px"} />
+          <img src={opp.keyboardLink} width={"128px"} height={"128px"} />
           <Flex ml={8} flexDir={"column"} align={"start"}>
             <Box textAlign={"center"} fontWeight={"semibold"}>
               {opp.name}
@@ -581,7 +582,7 @@ const Finished: React.FC<FinishedProps> = ({ gameManager }) => {
                 >
                   {ordinal_suffix_of(p.placement)}
                 </Flex>
-                <img src={"/keyboard.jpg"} width={"250px"} />
+                <img src={p.keyboardLink} width={"128px"} height={"128px"} />
               </HStack>
               <VStack align={"end"}>
                 <Box fontSize={"lg"}>{p.name}</Box>

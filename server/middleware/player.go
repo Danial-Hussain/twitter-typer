@@ -19,7 +19,8 @@ func PlayerCtx(next http.Handler) http.Handler {
 			reqToken = reqSplit[1]
 		}
 
-		var player_id string = controller.PlayerOrGuest(reqToken)
+		var player_id string
+		player_id, _ = controller.PlayerOrGuest(reqToken)
 		
 		ctxWithUser := context.WithValue(r.Context(), "player", player_id)
 		rWithUser := r.WithContext(ctxWithUser)

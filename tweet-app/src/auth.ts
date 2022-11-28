@@ -6,7 +6,9 @@ import {
   getPlayerStats,
   getPlayerKeyboards,
   changePlayerName,
+  changePlayerKeyboard,
 } from "./api";
+import { KeyboardData } from "./Keyboards";
 
 export interface Stats {
   Points: number;
@@ -47,13 +49,22 @@ const defaultGuest: User = {
   picture: "",
 };
 
+const defaultKeyboard: KeyboardData = {
+  id: 0,
+  name: "Default",
+  link: "/keyboards/Default@1-1024x1024.jpg",
+  pointsNeeded: 0,
+  selected: true,
+};
+
 const AuthContext = createContext({
   user: defaultGuest,
   signIn: async (response: GoogleAuthResponse) => {},
   signOut: () => {},
   changeName: async (username: string) => {},
+  changeKeyboard: async (keyboardId: number) => {},
   getStats: async () => emptyStats,
-  getKeyboards: async () => [] as string[],
+  getKeyboards: async () => [] as KeyboardData[],
 });
 
 const useAuth = () => useContext(AuthContext);
@@ -93,6 +104,14 @@ const useProviderAuth = () => {
     }
   };
 
+  const changeKeyboard = async (keyboardId: number) => {
+    if (user.token === "") {
+      return;
+    } else {
+      await changePlayerKeyboard(user.token, keyboardId);
+    }
+  };
+
   const getStats = async () => {
     if (user.token === "") {
       return emptyStats;
@@ -104,14 +123,23 @@ const useProviderAuth = () => {
 
   const getKeyboards = async () => {
     if (user.token === "") {
-      return [];
+      // Guest players only get the default keyboard
+      return [defaultKeyboard];
     } else {
       let data = await getPlayerKeyboards(user.token);
       return data;
     }
   };
 
-  return { user, signIn, signOut, changeName, getStats, getKeyboards };
+  return {
+    user,
+    signIn,
+    signOut,
+    changeName,
+    changeKeyboard,
+    getStats,
+    getKeyboards,
+  };
 };
 
 export { AuthContext, useAuth, useProviderAuth };

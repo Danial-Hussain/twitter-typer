@@ -30,7 +30,7 @@ func generateTweet() (string, string, int, string, string, []string) {
 	tweet_count := len(*Tweets)
 	tweet_number := rand.Intn(tweet_count)
 	tweet := (*Tweets)[tweet_number]
-	author_choices := []string{}
+	author_choices := []string{tweet.AuthorName}
 
 	for {
 		author_count := len(*TweetAuthors)
