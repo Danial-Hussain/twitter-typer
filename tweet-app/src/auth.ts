@@ -1,5 +1,6 @@
 import useStorage from "./hooks";
 import jwt_decode from "jwt-decode";
+import { KeyboardData } from "./Keyboards";
 import { useContext, createContext } from "react";
 import {
   login,
@@ -7,8 +8,8 @@ import {
   getPlayerKeyboards,
   changePlayerName,
   changePlayerKeyboard,
+  getUnlockedKeyboards,
 } from "./api";
-import { KeyboardData } from "./Keyboards";
 
 export interface Stats {
   Points: number;
@@ -55,6 +56,7 @@ const defaultKeyboard: KeyboardData = {
   link: "/keyboards/Default@1-1024x1024.jpg",
   pointsNeeded: 0,
   selected: true,
+  keyboardUnlocked: true,
 };
 
 const AuthContext = createContext({
@@ -65,6 +67,7 @@ const AuthContext = createContext({
   changeKeyboard: async (keyboardId: number) => {},
   getStats: async () => emptyStats,
   getKeyboards: async () => [] as KeyboardData[],
+  getNewUnlockedKeyboards: async () => [] as KeyboardData[],
 });
 
 const useAuth = () => useContext(AuthContext);
@@ -131,6 +134,16 @@ const useProviderAuth = () => {
     }
   };
 
+  const getNewUnlockedKeyboards = async () => {
+    if (user.token === "") {
+      // Guest players can't unlock keyboards
+      return [];
+    } else {
+      let data = await getUnlockedKeyboards(user.token);
+      return data;
+    }
+  };
+
   return {
     user,
     signIn,
@@ -139,6 +152,7 @@ const useProviderAuth = () => {
     changeKeyboard,
     getStats,
     getKeyboards,
+    getNewUnlockedKeyboards,
   };
 };
 

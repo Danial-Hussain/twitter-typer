@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"os"
 	"strings"
+	"time"
 )
 
 var Tweets *[]Tweet = &[]Tweet{}
@@ -27,6 +28,7 @@ type Tweet struct {
 }
 
 func generateTweet() (string, string, int, string, string, []string) {
+	rand.Seed(time.Now().UnixNano())
 	tweet_count := len(*Tweets)
 	tweet_number := rand.Intn(tweet_count)
 	tweet := (*Tweets)[tweet_number]

@@ -125,6 +125,19 @@ const getAllKeyboards = async () => {
   return data;
 };
 
+const getUnlockedKeyboards = async (token: string) => {
+  let response = await fetch(`${server}/unlockedKeyboards`, {
+    method: "GET",
+    mode: "cors",
+    headers: new Headers({
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    }),
+  });
+  let data: KeyboardData[] = await response.json();
+  return data;
+};
+
 export {
   createGame,
   joinGame,
@@ -134,4 +147,5 @@ export {
   changePlayerName,
   changePlayerKeyboard,
   getAllKeyboards,
+  getUnlockedKeyboards,
 };

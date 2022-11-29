@@ -116,6 +116,7 @@ export interface GameManager {
   state: GameState;
   players: Player[];
   playerName: string;
+  timeLimit: number;
 }
 
 export function useGameManager(
@@ -130,6 +131,7 @@ export function useGameManager(
     state: "Lobby",
     gameId: gameId,
     playerName: playerName,
+    timeLimit: 45,
   });
 
   const PING_RATE = 30000;
@@ -139,7 +141,6 @@ export function useGameManager(
 
     soc.onopen = () => {
       setPerformAction(() => (action: Action) => {
-        console.log(action);
         soc.send(JSON.stringify(action));
       });
       soc.send(
@@ -157,7 +158,6 @@ export function useGameManager(
 
     soc.onmessage = (evt) => {
       const message: Message = JSON.parse(evt.data);
-      console.log(message);
 
       switch (message.action) {
         case "pong":

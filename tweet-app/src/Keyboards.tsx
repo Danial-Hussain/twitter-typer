@@ -10,6 +10,7 @@ export interface KeyboardData {
   link: string;
   selected: boolean;
   pointsNeeded: number;
+  keyboardUnlocked?: boolean;
 }
 
 interface KeyBoardProps {
@@ -18,6 +19,7 @@ interface KeyBoardProps {
   borderWidth?: string;
   showDetails: boolean;
   keyboardData: KeyboardData;
+  keyboardUnlocked?: boolean;
 }
 
 export const Keyboard: React.FC<KeyBoardProps> = ({
@@ -26,6 +28,7 @@ export const Keyboard: React.FC<KeyBoardProps> = ({
   showDetails,
   keyboardData,
   borderWidth,
+  keyboardUnlocked,
 }) => {
   return (
     <VStack
@@ -56,7 +59,9 @@ export const Keyboard: React.FC<KeyBoardProps> = ({
             {keyboardData.name}
           </Box>
           <Box fontSize={"sm"}>
-            {keyboardData.pointsNeeded.toLocaleString()} {"points needed"}
+            {keyboardUnlocked
+              ? "Unlocked"
+              : `${keyboardData.pointsNeeded.toLocaleString()} points needed`}
           </Box>
         </HStack>
       )}
@@ -66,8 +71,8 @@ export const Keyboard: React.FC<KeyBoardProps> = ({
 
 const Keyboards = () => {
   const { user, getStats } = useAuth();
-  const [playerStats, setPlayerStats] = useState<null | Stats>();
   const [showKeyboards, setShowKeyboards] = useState(false);
+  const [playerStats, setPlayerStats] = useState<null | Stats>();
   const [keyboards, setKeyboards] = useState<KeyboardData[]>([]);
 
   useEffect(() => {
@@ -79,30 +84,35 @@ const Keyboards = () => {
       let stats = await getStats();
       setPlayerStats(stats);
     })();
-  });
+  }, []);
 
   return (
     <Layout>
       <Box mx={"auto"} width={"full"}>
-        <Box textAlign={"center"} fontSize={"4xl"} pb={"4"}>
+        <Box textAlign={"center"} fontSize={"4xl"}>
           {"Unlock New Keyboards"}
         </Box>
         {playerStats !== null && (
           <Box
+            fontSize={"xl"}
             textAlign={"center"}
-          >{`You currently have ${playerStats?.Points} points. Play some games to earn more.`}</Box>
+          >{`You currently have ${Number(playerStats?.Points).toFixed(
+            2
+          )} points. Play games to earn more.`}</Box>
         )}
         {user.token == "" && (
           <Box
             mb={"4"}
+            fontSize={"xl"}
             textAlign={"center"}
             color={"twitter.500"}
             fontWeight={"semibold"}
           >
-            {"Sign in to unlock more keyboards."}
+            {"Sign in to unlock keyboards."}
           </Box>
         )}
         <Flex
+          pt={"4"}
           flexWrap={"wrap"}
           justify={"center"}
           flexDir={{ base: "column", md: "row" }}
@@ -116,6 +126,7 @@ const Keyboards = () => {
                 height={"256px"}
                 keyboardData={b}
                 showDetails={true}
+                keyboardUnlocked={(playerStats?.Points || 0) >= b.pointsNeeded}
               />
             ))
           ) : (

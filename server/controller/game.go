@@ -2,7 +2,6 @@ package controller
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"server/database"
 	"sort"
@@ -28,7 +27,7 @@ const (
 	Finished         = "Finished"
 	GuessPointsBonus = 10
 	MaxPlayersInGame = 6
-	RoundTimeLimit   = 30
+	RoundTimeLimit   = 45
 )
 
 
@@ -391,8 +390,6 @@ func (g *Game) startFinish(player_id string) {
 	sort.Slice(player_points, func(i, j int) bool { 
 		return player_points[i]["points"].(float64) > player_points[j]["points"].(float64)
 	})
-
-	fmt.Println(player_points)
 
 	for i := range player_points {
 		player_id := player_points[i]["id"].(string)

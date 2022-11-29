@@ -266,3 +266,24 @@ func ChangePlayerKeyboard(player_id string, new_keyboard_id int) error {
 		return RedisClient.Set(Ctx, player_id, player_json, 0).Err()
 	}
 }
+
+func GrantPlayerKeyboard(player_id string, keyboard_id int) error {
+	data, err := RedisClient.Get(Ctx, player_id).Result()
+
+	if err != nil {
+		return err
+	}
+
+	var player PlayerRedis
+	if err = json.Unmarshal([]byte(data), &player); err != nil {
+		return err
+	}
+
+	player.KeyboardsOwned[keyboard_id] = true
+	
+	if player_json, err := json.Marshal(player); err != nil {
+		return err
+	} else {
+		return RedisClient.Set(Ctx, player_id, player_json, 0).Err()
+	}
+}

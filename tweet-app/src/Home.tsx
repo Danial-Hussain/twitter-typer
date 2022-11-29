@@ -1,9 +1,9 @@
 import Layout from "./Layout";
-import { Keyboard, KeyboardData } from "./Keyboards";
 import { Stats, useAuth } from "./auth";
 import { useEffect, useState } from "react";
 import { createGame, joinGame } from "./api";
 import { Link, useNavigate } from "react-router-dom";
+import { Keyboard, KeyboardData } from "./Keyboards";
 import { ArrowUpIcon, EditIcon } from "@chakra-ui/icons";
 
 import {
@@ -185,7 +185,16 @@ const KeyboardsPanel = () => {
       let result = await getKeyboards();
       setKeyboards(result);
     })();
-  }, [keyboards]);
+  }, []);
+
+  const selectKeyboard = (id: number) => {
+    changeKeyboard(id);
+    let tmp = [...keyboards];
+    tmp.forEach((k) =>
+      k.id === id ? (k.selected = true) : (k.selected = false)
+    );
+    setKeyboards(tmp);
+  };
 
   return (
     <>
@@ -197,11 +206,14 @@ const KeyboardsPanel = () => {
           <Box>{"Get more keyboards"}</Box>
         </Link>
       </HStack>
-      <HStack>
+      <HStack
+        overflowX={"scroll"}
+        overflowY={"hidden"}
+        maxW={{ base: "sm", md: "3xl" }}
+      >
         {keyboards.map((k, i) => (
-          <VStack spacing={-4}>
+          <VStack spacing={-4} key={i}>
             <Box
-              p={"2"}
               key={i}
               rounded={"xl"}
               cursor={"pointer"}
@@ -210,10 +222,7 @@ const KeyboardsPanel = () => {
                 transitionDuration: "0.2s",
                 transitionTimingFunction: "ease-in-out",
               }}
-              onClick={() => {
-                changeKeyboard(k.id);
-                setKeyboards([...keyboards]);
-              }}
+              onClick={() => selectKeyboard(k.id)}
             >
               <Keyboard
                 key={i}
@@ -227,11 +236,11 @@ const KeyboardsPanel = () => {
             {k.selected && (
               <Box
                 px={"8px"}
-                py={"1px"}
-                rounded={"md"}
+                width={"128px"}
                 fontSize={"sm"}
-                bg={"twitter.100"}
-                color={"twitter.500"}
+                bg={"gray.800"}
+                color={"gray.100"}
+                textAlign={"center"}
               >
                 {"Selected"}
               </Box>
@@ -252,7 +261,7 @@ const Profile = () => {
   }, [user]);
 
   return (
-    <Accordion allowToggle={true} defaultIndex={0}>
+    <Accordion allowToggle={true}>
       <AccordionItem>
         <AccordionButton _expanded={{ bg: "blue", color: "white" }}>
           <Box flex="1" textAlign="left">
@@ -260,7 +269,7 @@ const Profile = () => {
           </Box>
           <AccordionIcon />
         </AccordionButton>
-        <AccordionPanel py={0}>
+        <AccordionPanel>
           <Flex
             p={"4"}
             my={"4"}
@@ -268,7 +277,8 @@ const Profile = () => {
             border={"1px"}
             rounded={"lg"}
             flexDir={"column"}
-            borderColor={"gray.200"}
+            bgColor={"gray.100"}
+            borderColor={"gray.300"}
           >
             <Flex
               align={"center"}
@@ -314,10 +324,11 @@ const Profile = () => {
                   {"Sign in to save your progress"}
                   <ArrowUpIcon
                     ml={"2"}
-                    color={"blue"}
+                    p={"1"}
+                    color={"twitter.500"}
                     rounded={"xl"}
                     fontSize={"24"}
-                    bg={"twitter.100"}
+                    bg={"twitter.200"}
                   />
                 </Flex>
               )}
@@ -353,10 +364,16 @@ const Home = () => {
           fontWeight={"bold"}
           textAlign={"center"}
         >
-          {"Welcome to TwitterTyper"}
+          {"TwitterTyper"}
         </Box>
-        <Box fontSize={"2xl"} textAlign={"center"} mb={"6"} color={"blue"}>
-          {"The typeracer game with a twitter twist!"}
+
+        <Box
+          fontSize={"2xl"}
+          textAlign={"center"}
+          mb={"6"}
+          color={"twitter.500"}
+        >
+          {"The typeracer game for twitter enthusiasts!"}
         </Box>
         <Profile />
         <Flex

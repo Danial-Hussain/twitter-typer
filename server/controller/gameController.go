@@ -160,7 +160,7 @@ func GetPlayerKeyboardsHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(keyboards)	
 }
 
-func ChangePlayerName(w http.ResponseWriter, r *http.Request) {
+func ChangePlayerNameHandler(w http.ResponseWriter, r *http.Request) {
 	type Body struct {
 		Name string `json:"name"`
 	}
@@ -175,7 +175,7 @@ func ChangePlayerName(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func ChangePlayerKeyboard(w http.ResponseWriter, r *http.Request) {
+func ChangePlayerKeyboardHandler(w http.ResponseWriter, r *http.Request) {
 	type Body struct {
 		KeyboardId int `json:"keyboardId"`
 	}
@@ -188,4 +188,31 @@ func ChangePlayerKeyboard(w http.ResponseWriter, r *http.Request) {
 	player_id := r.Context().Value("player").(string)
 	database.ChangePlayerKeyboard(player_id, body.KeyboardId)
 	w.WriteHeader(http.StatusOK)
+}
+
+func PlayerUnlockedKeyboardHandler(w http.ResponseWriter, r *http.Request) {
+	player_id := r.Context().Value("player").(string)
+	stats := database.GetPlayerStatsRedis(player_id)
+	keyboards := database.GetPlayerKeyboardsRedis(player_id)
+	keyboards_set := make(map[int]bool)
+	keyboards_unlocked := []Keyboard{}
+
+	for i := range keyboards {
+		keyboards_set[keyboards[i].KeyboardId] = true
+	}
+
+	for i := range Keyboards {
+		id := Keyboards[i].Id
+		points_needed := Keyboards[i].PointsNeeded
+
+		_, ok := keyboards_set[id]
+
+		if  stats["Points"].(float64) >= float64(points_needed) && !ok {
+			keyboards_unlocked = append(keyboards_unlocked, Keyboards[id])
+			database.GrantPlayerKeyboard(player_id, id)
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(keyboards_unlocked)	
 }

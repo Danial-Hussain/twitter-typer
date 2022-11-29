@@ -11,6 +11,8 @@ import {
   SettingsIcon,
   InfoOutlineIcon,
   CheckCircleIcon,
+  TimeIcon,
+  UnlockIcon,
 } from "@chakra-ui/icons";
 
 import {
@@ -40,9 +42,10 @@ import {
   CircularProgress,
   CircularProgressLabel,
   HStack,
+  useToast,
+  useClipboard,
 } from "@chakra-ui/react";
 import { useAuth } from "./auth";
-import { Keyboard } from "./Keyboards";
 
 interface LobbyProps {
   gameManager: GameManager;
@@ -50,6 +53,11 @@ interface LobbyProps {
 }
 
 const Lobby: React.FC<LobbyProps> = ({ gameManager, performAction }) => {
+  const url = `${client}${location.pathname}`;
+  const code = location.pathname.split("/")[2];
+
+  const { onCopy, value, setValue, hasCopied } = useClipboard(url);
+
   const user = gameManager.players.find((p) => p.isUser === true);
   const [waiting, setWaiting] = useState<boolean | undefined>(false);
   const [showInstructions, setShowInstructions] = useStorage(
@@ -66,21 +74,20 @@ const Lobby: React.FC<LobbyProps> = ({ gameManager, performAction }) => {
       <Box fontWeight={"bold"} fontSize={"4xl"} mb={"2"}>
         {"Game Lobby"}
       </Box>
-      <VStack spacing={0.1}>
-        <HStack>
-          <Box textAlign={"center"}>{"Share this code:"}</Box>
-          <Box fontWeight={"bold"} color={"blue.500"}>
-            {location.pathname.split("/")[2]}
-          </Box>
-        </HStack>
-        <Box fontWeight={"bold"}>{"OR"}</Box>
-        <HStack>
-          <Box textAlign={"center"}>{"Share this link:"}</Box>
-          <Box
-            fontWeight={"bold"}
-            color={"blue.500"}
-          >{`${client}${location.pathname}`}</Box>
-        </HStack>
+      <VStack spacing={0.5}>
+        <Box textAlign={"center"} fontSize={"lg"} color={"gray.500"}>
+          {"Click the link to copy"}
+        </Box>
+        <Button
+          variant={"solid"}
+          colorScheme={"twitter"}
+          onClick={() => {
+            setValue(url);
+            onCopy();
+          }}
+        >
+          {hasCopied ? "Copied!" : url}
+        </Button>
       </VStack>
       <HStack
         mt={"4"}
@@ -218,17 +225,18 @@ const Instructions: React.FC<InstructionsProps> = ({
 
 interface CountdownProps {
   timer: number;
-  performAction: (action: Action) => void;
 }
 
-const Countdown: React.FC<CountdownProps> = ({ timer, performAction }) => {
+const Countdown: React.FC<CountdownProps> = ({ timer }) => {
   const [countdownValue, setCountdownValue] = useState(timer);
   const { isOpen } = useDisclosure({ defaultIsOpen: true });
 
   useEffect(() => {
-    countdownValue > 0
-      ? setInterval(() => setCountdownValue(countdownValue - 1), 1000)
-      : null;
+    let interval = setInterval(
+      () => setCountdownValue((countdownValue) => countdownValue - 1),
+      1000
+    );
+    return () => clearInterval(interval);
   }, [countdownValue]);
 
   return (
@@ -245,14 +253,25 @@ const Countdown: React.FC<CountdownProps> = ({ timer, performAction }) => {
           <ModalOverlay />
           <ModalContent>
             <ModalBody>
-              <Box>{"Game starting in..."}</Box>
-              <CircularProgress
-                max={timer}
-                value={timer - countdownValue}
-                color="green.400"
+              <Flex
+                width={"full"}
+                align={"center"}
+                justify={"center"}
+                flexDir={"column"}
               >
-                <CircularProgressLabel>{countdownValue}s</CircularProgressLabel>
-              </CircularProgress>
+                <Box textAlign={"center"} mb={"4"} fontSize={"lg"}>
+                  {"Game starting in..."}
+                </Box>
+                <CircularProgress
+                  max={timer}
+                  value={timer - countdownValue}
+                  color="green.400"
+                >
+                  <CircularProgressLabel>
+                    {countdownValue}s
+                  </CircularProgressLabel>
+                </CircularProgress>
+              </Flex>
             </ModalBody>
           </ModalContent>
         </Modal>
@@ -268,35 +287,27 @@ interface AnswerProps {
 
 const Answer: React.FC<AnswerProps> = ({ tweet, currentIdx }) => {
   return (
-    <Flex flexWrap={"wrap"} mx={"auto"}>
+    <Flex
+      p={"4"}
+      mx={"auto"}
+      maxW={"4xl"}
+      border={"2px"}
+      rounded={"xl"}
+      flexWrap={"wrap"}
+      borderColor={"gray.300"}
+      backgroundColor={"gray.100"}
+    >
       {[...tweet].map((t, i) => (
-        <Flex
-          mx={1}
-          key={i}
-          justify={"end"}
-          align={"center"}
-          flexDir={"column"}
-        >
+        <Flex key={i} justify={"end"} align={"center"} flexDir={"column"}>
           <Box
-            fontSize={"5xl"}
+            fontSize={"2xl"}
             textAlign={"center"}
-            color={currentIdx > i ? "black" : "gray.300"}
+            color={i < currentIdx ? "green.200" : "black"}
+            fontWeight={currentIdx > i ? "semibold" : "normal"}
+            backgroundColor={i === currentIdx ? "twitter.300" : "gray.100"}
           >
-            {t}
+            {t === " " ? "\u00A0" : t}
           </Box>
-          <Box
-            width={"10"}
-            rounded={"xl"}
-            height={"1"}
-            backgroundColor={
-              i === currentIdx
-                ? "blue.500"
-                : i < currentIdx
-                ? "green.400"
-                : "gray.400"
-            }
-            className={i == currentIdx ? "blink" : ""}
-          />
         </Flex>
       ))}
     </Flex>
@@ -317,10 +328,24 @@ const GuessAuthor: React.FC<GuessAuthorProps> = ({
   const [countdownValue, setCountdownValue] = useState(timer);
   const { isOpen, onClose } = useDisclosure({ defaultIsOpen: true });
 
+  const defaultClose = (e: KeyboardEvent) => e.preventDefault();
+
   useEffect(() => {
-    countdownValue > 0
-      ? setInterval(() => setCountdownValue(countdownValue - 1), 1000)
-      : performAction({ action: "playerGuess", data: { guess: "" } });
+    document.addEventListener("keydown", defaultClose, true);
+    return () => document.removeEventListener("keydown", defaultClose);
+  }, []);
+
+  useEffect(() => {
+    if (countdownValue <= 0) {
+      performAction({ action: "playerGuess", data: { guess: "" } });
+    }
+
+    let interval = setInterval(
+      () => setCountdownValue((countdownValue) => countdownValue - 1),
+      1000
+    );
+
+    return () => clearInterval(interval);
   }, [countdownValue]);
 
   return (
@@ -402,15 +427,12 @@ interface GameProps {
 const Game: React.FC<GameProps> = ({ gameManager, performAction }) => {
   const user = gameManager.players.find((p) => p.isUser === true);
   const opps = gameManager.players.filter((p) => p.isUser === false);
+  // Provide buffer for diff between server and client clock
+  const [timeRemaining, setTimeRemaining] = useState(gameManager.timeLimit - 3);
 
   if (user === undefined) {
     return <Box>{"Hmmm... Something went wrong"}</Box>;
   }
-
-  useEffect(() => {
-    document.addEventListener("keydown", type, true);
-    return () => document.removeEventListener("keydown", type);
-  }, []);
 
   const type = (ev: KeyboardEvent) => {
     if (ev.key == " " && ev.target == document.body) ev.preventDefault();
@@ -418,11 +440,25 @@ const Game: React.FC<GameProps> = ({ gameManager, performAction }) => {
       performAction({ action: "playerMove", data: { key: ev.key } });
   };
 
+  useEffect(() => {
+    document.addEventListener("keydown", type, true);
+    return () => document.removeEventListener("keydown", type);
+  }, []);
+
+  useEffect(() => {
+    let interval = 0;
+    if (gameManager.state === "Started" && timeRemaining > 0) {
+      interval = setInterval(
+        () => setTimeRemaining((timeRemaining) => timeRemaining - 1),
+        1000
+      );
+    }
+    return () => clearInterval(interval);
+  }, [timeRemaining, gameManager.state]);
+
   return (
     <>
-      {gameManager.state == "Countdown" && (
-        <Countdown timer={10} performAction={performAction} />
-      )}
+      {gameManager.state == "Countdown" && <Countdown timer={10} />}
       {user.state === "Guessing" && (
         <GuessAuthor
           timer={10}
@@ -435,12 +471,26 @@ const Game: React.FC<GameProps> = ({ gameManager, performAction }) => {
         currentIdx={user.currentLetterIdx}
       />
       <Divider orientation="horizontal" my={"4"} />
+      <HStack>
+        <TimeIcon width={"5"} height={"5"} />
+        <Box textAlign={"right"}>{`${timeRemaining} seconds left`}</Box>
+      </HStack>
       <Box>
-        <Flex align={"start"} mt={"4"}>
-          <img src={user.keyboardLink} width={"128px"} height={"128px"} />
+        <Flex align={"start"} mt={"8"}>
+          <Image
+            rounded={"xl"}
+            width={"200px"}
+            height={"200px"}
+            src={user.keyboardLink}
+          />
           <Flex ml={8} flexDir={"column"} align={"start"} justify={"end"}>
-            <Box textAlign={"center"} fontWeight={"semibold"}>
-              {user.name}
+            <Box
+              mb={"2"}
+              fontSize={"xl"}
+              textAlign={"center"}
+              fontWeight={"semibold"}
+            >
+              {`${user.name} (You)`}
             </Box>
             <Progress
               width={"md"}
@@ -453,9 +503,19 @@ const Game: React.FC<GameProps> = ({ gameManager, performAction }) => {
       </Box>
       {opps.map((opp, i) => (
         <Flex align={"start"} key={i} mt={"4"}>
-          <img src={opp.keyboardLink} width={"128px"} height={"128px"} />
+          <Image
+            rounded={"xl"}
+            width={"200px"}
+            height={"200px"}
+            src={opp.keyboardLink}
+          />
           <Flex ml={8} flexDir={"column"} align={"start"}>
-            <Box textAlign={"center"} fontWeight={"semibold"}>
+            <Box
+              mb={"2"}
+              fontSize={"xl"}
+              textAlign={"center"}
+              fontWeight={"semibold"}
+            >
               {opp.name}
             </Box>
             <Progress
@@ -495,13 +555,36 @@ interface FinishedProps {
 }
 
 const Finished: React.FC<FinishedProps> = ({ gameManager }) => {
+  const auth = useAuth();
+  const toast = useToast();
   const user = gameManager.players.find((p) => p.isUser === true);
-
-  console.log(gameManager.players);
 
   if (user === undefined) {
     return <Box>{"Hmmm... something went wrong"}</Box>;
   }
+
+  useEffect(() => {
+    try {
+      // @ts-ignore
+      twttr.widgets.load();
+    } catch (err) {
+      console.log(err);
+    }
+
+    (async () => {
+      let newKeyboards = await auth.getNewUnlockedKeyboards();
+      newKeyboards.map((board) =>
+        toast({
+          title: `Congrats! You have unlocked the ${board.name} keyboard`,
+          description: "Go to your profile to select it.",
+          status: "info",
+          duration: 9000,
+          isClosable: true,
+          icon: <UnlockIcon />,
+        })
+      );
+    })();
+  }, []);
 
   return (
     <>
@@ -520,42 +603,40 @@ const Finished: React.FC<FinishedProps> = ({ gameManager }) => {
         borderColor={"gray.200"}
         backgroundColor={"gray.100"}
       >
-        <Box fontSize={"4xl"} textAlign={"center"}>
+        <Box fontSize={"3xl"} textAlign={"center"}>
           {"This tweet was written by..."}
         </Box>
         <Box fontSize={"3xl"} fontWeight={"semibold"}>
           {gameManager.tweet.author}
         </Box>
-        <HStack px={"3"} py={"2"} rounded={"xl"} backgroundColor={"blue.300"}>
-          <Image src={"/twitter.svg"} width={"20px"} />
-          <Link
-            fontSize={"sm"}
-            color={"white"}
-            href={`https://twitter.com/${gameManager.tweet.authorHandle}`}
-          >
-            {"Follow on Twitter"}
-          </Link>
-        </HStack>
+        <Link
+          href={`https://twitter.com/${gameManager.tweet.authorHandle}?ref_src=twsrc%5Etfw`}
+          className="twitter-follow-button"
+          data-show-count="true"
+          data-size="large"
+        >
+          Follow @{`${gameManager.tweet.authorHandle}`}
+        </Link>
         <Box
           p={"2"}
-          width={{ base: "sm", md: "2xl" }}
           border={"1px"}
           rounded={"lg"}
           borderColor={"gray.300"}
+          width={{ base: "sm", md: "2xl" }}
         >
           {gameManager.tweet.tweet}
         </Box>
-        <Box>{`You placed ${ordinal_suffix_of(user.placement)}`}</Box>
-        <Link href={"/"}>
+        <Link href={"/"} _hover={{ textDecoration: "none" }}>
           <Button colorScheme={"twitter"} variant={"outline"}>
             {"Play Again?"}
           </Button>
         </Link>
       </VStack>
-      <VStack spacing={"8"} mt={"8"} width={{ base: "sm", md: "2xl" }}>
+      <VStack mt={"8"} spacing={0} width={{ base: "sm", md: "2xl" }}>
         <Box fontSize={"3xl"} fontWeight={"semibold"}>
           {"Results"}
         </Box>
+        <Box>{`You placed ${ordinal_suffix_of(user.placement)}`}</Box>
         {[...gameManager.players]
           .sort((a, b) => b.points - a.points)
           .map((p, i) => (
@@ -582,7 +663,12 @@ const Finished: React.FC<FinishedProps> = ({ gameManager }) => {
                 >
                   {ordinal_suffix_of(p.placement)}
                 </Flex>
-                <img src={p.keyboardLink} width={"128px"} height={"128px"} />
+                <Image
+                  rounded={"xl"}
+                  width={"150px"}
+                  height={"150px"}
+                  src={p.keyboardLink}
+                />
               </HStack>
               <VStack align={"end"}>
                 <Box fontSize={"lg"}>{p.name}</Box>
