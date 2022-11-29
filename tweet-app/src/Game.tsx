@@ -65,6 +65,19 @@ const Lobby: React.FC<LobbyProps> = ({ gameManager, performAction }) => {
     true
   );
 
+  const [countdownValue, setCountdownValue] = useState(17);
+
+  useEffect(() => {
+    let interval = 0;
+    if (gameManager.gameType == "PrivateGame") {
+      interval = setInterval(
+        () => setCountdownValue((countdownValue) => countdownValue - 1),
+        1000
+      );
+    }
+    return () => clearInterval(interval);
+  }, [countdownValue]);
+
   return (
     <>
       <Instructions
@@ -79,7 +92,7 @@ const Lobby: React.FC<LobbyProps> = ({ gameManager, performAction }) => {
           {"Click the link to copy"}
         </Box>
         <Button
-          variant={"solid"}
+          variant={"outline"}
           colorScheme={"twitter"}
           onClick={() => {
             setValue(url);
@@ -124,7 +137,11 @@ const Lobby: React.FC<LobbyProps> = ({ gameManager, performAction }) => {
           </AvatarGroup>
         ))}
       </Flex>
-      {user?.isCreator === true ? (
+      {gameManager.gameType === "PrivateGame" ? (
+        <Box mt={"4"} fontSize={"lg"}>
+          {`Game starting in ${countdownValue} seconds.`}
+        </Box>
+      ) : user?.isCreator === true ? (
         <>
           <Button
             mt={"4"}
@@ -138,15 +155,9 @@ const Lobby: React.FC<LobbyProps> = ({ gameManager, performAction }) => {
               setWaiting(true);
               performAction({ action: "startCountdown" });
             }}
-            disabled={gameManager.players.length == 1}
           >
             {"Start"}
           </Button>
-          {gameManager.players.length == 1 && (
-            <Box mt={4} textAlign={"center"} fontSize={"lg"}>
-              {"You must have at least 2 players to start the game."}
-            </Box>
-          )}
         </>
       ) : (
         <Box mt={"4"} fontSize={"lg"}>
@@ -481,7 +492,9 @@ const Game: React.FC<GameProps> = ({ gameManager, performAction }) => {
             rounded={"xl"}
             width={"200px"}
             height={"200px"}
-            src={user.keyboardLink}
+            src={`/keyboards/transparent-${
+              user.keyboardLink.split("/keyboards/")[1]
+            }`}
           />
           <Flex ml={8} flexDir={"column"} align={"start"} justify={"end"}>
             <Box
@@ -507,7 +520,9 @@ const Game: React.FC<GameProps> = ({ gameManager, performAction }) => {
             rounded={"xl"}
             width={"200px"}
             height={"200px"}
-            src={opp.keyboardLink}
+            src={`/keyboards/transparent-${
+              opp.keyboardLink.split("/keyboards/")[1]
+            }`}
           />
           <Flex ml={8} flexDir={"column"} align={"start"}>
             <Box
@@ -632,7 +647,7 @@ const Finished: React.FC<FinishedProps> = ({ gameManager }) => {
           </Button>
         </Link>
       </VStack>
-      <VStack mt={"8"} spacing={0} width={{ base: "sm", md: "2xl" }}>
+      <VStack mt={"8"} width={{ base: "sm", md: "2xl" }}>
         <Box fontSize={"3xl"} fontWeight={"semibold"}>
           {"Results"}
         </Box>
@@ -647,7 +662,7 @@ const Finished: React.FC<FinishedProps> = ({ gameManager }) => {
               spacing={"12"}
               width={"full"}
               justify={"space-between"}
-              backgroundColor={p.isUser ? "twitter.100" : "white"}
+              backgroundColor={p.isUser ? "twitter.50" : "white"}
             >
               <HStack spacing={"4"}>
                 <Flex
@@ -667,7 +682,9 @@ const Finished: React.FC<FinishedProps> = ({ gameManager }) => {
                   rounded={"xl"}
                   width={"150px"}
                   height={"150px"}
-                  src={p.keyboardLink}
+                  src={`/keyboards/transparent-${
+                    p.keyboardLink.split("/keyboards/")[1]
+                  }`}
                 />
               </HStack>
               <VStack align={"end"}>

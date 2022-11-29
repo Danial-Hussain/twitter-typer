@@ -1,10 +1,10 @@
 import Layout from "./Layout";
 import { Stats, useAuth } from "./auth";
 import { useEffect, useState } from "react";
-import { createGame, joinGame } from "./api";
 import { Link, useNavigate } from "react-router-dom";
 import { Keyboard, KeyboardData } from "./Keyboards";
 import { ArrowUpIcon, EditIcon } from "@chakra-ui/icons";
+import { createGame, joinGame, joinRandomGame } from "./api";
 
 import {
   Button,
@@ -51,7 +51,7 @@ const CreateGame = () => {
       borderColor={"gray.200"}
       width={{ base: "sm", md: "sm", lg: "md" }}
     >
-      <Box mb={"5"} fontSize={"4xl"} color={"blue.800"} textAlign={"center"}>
+      <Box mb={"5"} fontSize={"4xl"} color={"twitter.800"} textAlign={"center"}>
         {"Create a Game"}
       </Box>
       <Button width={"full"} onClick={create} colorScheme={"twitter"}>
@@ -64,7 +64,7 @@ const CreateGame = () => {
         color={"gray.800"}
         textAlign={"center"}
       >
-        {"Create a game and invite your friends to join."}
+        {"Create a private game and invite your friends."}
       </Box>
     </Box>
   );
@@ -76,6 +76,7 @@ const JoinGame = () => {
 
   const title = "Join a Game";
 
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   const join = async () => {
@@ -87,6 +88,11 @@ const JoinGame = () => {
         setError("");
       }, 1000);
     }
+  };
+
+  const joinRandom = async () => {
+    let id = await joinRandomGame(user.token);
+    navigate(`/game/${id}`);
   };
 
   return (
@@ -102,8 +108,8 @@ const JoinGame = () => {
       <Box mb={"5"} fontSize={"4xl"} color={"gray.800"} textAlign={"center"}>
         {title}
       </Box>
-      <Button width={"full"} onClick={join} colorScheme={"blackAlpha"}>
-        {"Join Random Game"}
+      <Button width={"full"} onClick={joinRandom} colorScheme={"blackAlpha"}>
+        {"Join Public Game"}
       </Button>
       <Box textAlign={"center"} my={"4"} color={"gray.800"}>
         {"OR"}
@@ -207,7 +213,7 @@ const KeyboardsPanel = () => {
         </Link>
       </HStack>
       <HStack
-        overflowX={"scroll"}
+        overflowX={"auto"}
         overflowY={"hidden"}
         maxW={{ base: "sm", md: "3xl" }}
       >

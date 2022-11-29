@@ -33,16 +33,33 @@ func JoinGameHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func JoinRandomHandler(w http.ResponseWriter, r *http.Request) {
-	// Check in the queue for a game that has started in the past 10 seconds
-	// Otherwise create a new game and add to the queue
-	// The queue should expire games after 10 seconds
+func JoinRandomGameHandler(w http.ResponseWriter, r *http.Request) {
+	player_id := r.Context().Value("player").(string)
+	game_id, err := database.DequeueGame()
+
+	if err != nil {
+		// If there is no game the user can join -> create a new game and add to queue
+		if game, err := NewGame(player_id, PrivateGame); err != nil {
+			http.Error(w, "failed to create game", http.StatusBadRequest)
+		} else {
+			database.Queue(game.Id)
+			Games[game.Id] = game
+			shortened_game_id := strings.Split(game.Id, ":")[1]
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(shortened_game_id)
+		}
+	} else {
+		// If there is a game the user can join -> return that game
+		shortened_game_id := strings.Split(game_id, ":")[1]
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(shortened_game_id)
+	}
 }
 
 func CreateGameHandler(w http.ResponseWriter, r *http.Request) {
 	player_id := r.Context().Value("player").(string)
 
-	if game, err := NewGame(player_id); err != nil {
+	if game, err := NewGame(player_id, PublicGame); err != nil {
 		http.Error(w, "failed to create game", http.StatusBadRequest)
 	} else {
 		Games[game.Id] = game

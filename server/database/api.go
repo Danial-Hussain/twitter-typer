@@ -2,6 +2,7 @@ package database
 
 import (
 	"encoding/json"
+	"errors"
 	"time"
 
 	uuid "github.com/satori/go.uuid"
@@ -286,4 +287,54 @@ func GrantPlayerKeyboard(player_id string, keyboard_id int) error {
 	} else {
 		return RedisClient.Set(Ctx, player_id, player_json, 0).Err()
 	}
+}
+
+func DequeueGame() (string, error) {	
+	maxIter := 100
+
+	for {
+		// We have checked 100 games
+		if maxIter -= 1; maxIter == 0 {
+			return "", errors.New("failed to find game")
+		}
+
+		// Get the first game from the queue
+		game_id, err := RedisClient.LIndex(Ctx, GameQueue, 0).Result()
+		if err != nil {
+			return "", err
+		}
+
+		// Get the game json string
+		game_str, err := RedisClient.Get(Ctx, game_id).Result()
+		if err != nil {
+			RedisClient.LPop(Ctx, GameQueue).Result()
+			continue
+		}
+
+		// Get the game data
+		var game GameRedis
+		if err = json.Unmarshal([]byte(game_str), &game); err != nil {
+			RedisClient.LPop(Ctx, GameQueue).Result()
+			continue
+		}
+
+		// Check if the game is in the right state
+		if game.State != "Lobby" {
+			RedisClient.LPop(Ctx, GameQueue).Result()
+			continue
+		}
+
+		// Check if the game doesn't have too many players or too little players
+		if len(game.Players) == 0 || len(game.Players) == 6 {
+			RedisClient.LPop(Ctx, GameQueue).Result()
+			continue
+		}
+
+		return game_id, nil	
+	}
+}
+
+func Queue(game_id string) error {	
+	_, err := RedisClient.RPush(Ctx, GameQueue, game_id).Result()
+	return err
 }

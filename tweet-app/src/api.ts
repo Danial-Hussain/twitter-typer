@@ -27,6 +27,19 @@ const joinGame = async (code: number) => {
   }
 };
 
+const joinRandomGame = async (token: string) => {
+  const response = await fetch(`${server}/joinRandomGame`, {
+    method: "POST",
+    mode: "cors",
+    headers: new Headers({
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    }),
+  });
+  const data: number = await response.json();
+  return data;
+};
+
 const login = async (name: string, email: string, picture: string) => {
   try {
     const response = await fetch(`${server}/signin`, {
@@ -139,13 +152,14 @@ const getUnlockedKeyboards = async (token: string) => {
 };
 
 export {
-  createGame,
-  joinGame,
   login,
+  joinGame,
+  createGame,
+  joinRandomGame,
   getPlayerStats,
-  getPlayerKeyboards,
-  changePlayerName,
-  changePlayerKeyboard,
   getAllKeyboards,
+  changePlayerName,
+  getPlayerKeyboards,
   getUnlockedKeyboards,
+  changePlayerKeyboard,
 };

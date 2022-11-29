@@ -39,11 +39,17 @@ interface PingAction {
 
 /* Messages */
 export type Message =
+  | SendGameTypeMessage
   | SendActivePlayersMessage
   | StartCountdownMessage
   | StartGameMessage
   | StartFinishMessage
   | PongMessage;
+
+interface SendGameTypeMessage {
+  action: "sendGameType";
+  data: GameType;
+}
 
 interface SendActivePlayersMessage {
   action: "sendActivePlayers";
@@ -73,6 +79,8 @@ interface PongMessage {
 type PlayerState = "Typing" | "Guessing" | "Completed";
 
 type GameState = "Lobby" | "Countdown" | "Started" | "Finished";
+
+type GameType = "PublicGame" | "PrivateGame";
 
 type PerformAction = (action: Action) => void;
 
@@ -117,6 +125,7 @@ export interface GameManager {
   players: Player[];
   playerName: string;
   timeLimit: number;
+  gameType: GameType;
 }
 
 export function useGameManager(
@@ -132,6 +141,7 @@ export function useGameManager(
     gameId: gameId,
     playerName: playerName,
     timeLimit: 45,
+    gameType: "PrivateGame",
   });
 
   const PING_RATE = 30000;
@@ -165,6 +175,12 @@ export function useGameManager(
             () => soc.send(JSON.stringify({ action: "ping" })),
             PING_RATE
           );
+          break;
+        case "sendGameType":
+          setGameManager((gameManager) => ({
+            ...gameManager,
+            gameType: message.data,
+          }));
           break;
         case "sendActivePlayers":
           setGameManager((gameManager) => ({

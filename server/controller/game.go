@@ -18,16 +18,20 @@ type Response struct {
 
 
 const (
-	Typing           = "Typing"
-	Guessing         = "Guessing"
-	Completed        = "Completed"
-	Lobby            = "Lobby"
-	Countdown        = "Countdown"
-	Started          = "Started"
-	Finished         = "Finished"
-	GuessPointsBonus = 10
-	MaxPlayersInGame = 6
-	RoundTimeLimit   = 45
+	Typing               = "Typing"
+	Guessing             = "Guessing"
+	Completed            = "Completed"
+	Lobby                = "Lobby"
+	Countdown            = "Countdown"
+	Started              = "Started"
+	Finished             = "Finished"
+	GuessPointsBonus     = 10
+	MaxPlayersInGame     = 6
+	RoundTimeLimit       = 45
+	CountdownTimeLimit   = 10
+	PrivateGameTimeLimit = 15
+	PublicGame           = "PublicGame"
+	PrivateGame          = "PrivateGame"
 )
 
 
@@ -86,6 +90,7 @@ func NewPlayer(
 
 type Game struct {
 	Id            string
+	Type          string
 	Winner        string
 	TimeLimit     int
 	MaxPlayers    int
@@ -99,10 +104,16 @@ type Game struct {
 }
 
 
-func NewGame(player_id string) (*Game, error) {
+func NewGame(player_id string, game_type string) (*Game, error) {
 	tweet_id, tweet, tweet_word_count, author, author_handle, choices := generateTweet()
 
-	if game_id, err := database.CreateGameRedis(Lobby, tweet_id, player_id, MaxPlayersInGame, RoundTimeLimit); err != nil {
+	if game_id, err := database.CreateGameRedis(
+		Lobby, 
+		tweet_id, 
+		player_id, 
+		MaxPlayersInGame, 
+		RoundTimeLimit,
+	); err != nil {
 		return nil, err
 	} else {
 		game := Game{
@@ -110,6 +121,7 @@ func NewGame(player_id string) (*Game, error) {
 			State: Lobby, 
 			Tweet: tweet,
 			Author: author,
+			Type: game_type,
 			AuthorChoices: choices,
 			TimeLimit: RoundTimeLimit,
 			AuthorHandle: author_handle,
@@ -168,19 +180,33 @@ func (g *Game) registerPlayer(
 	var data Data
 	err := json.Unmarshal(*message["data"], &data)
 	if err != nil {
-		log.Println(err)
 		return
+	}
+
+	var result Response
+	result.Action = "sendGameType"
+	result.Data = g.Type
+		
+	if result_json, err := json.Marshal(result); err != nil {
+		return
+	} else {
+		conn.WriteMessage(websocket.TextMessage, result_json)
 	}
 
 	g.Players[player_id] = NewPlayer(player_id, data.Name, len(g.Players) == 0, conn, keyboard)
 	database.AddPlayerToGameRedis(g.Id, player_id)
+
+	if len(g.Players) == 1 && g.Type == PrivateGame {
+		go func() {
+			time.Sleep(PrivateGameTimeLimit * time.Second)
+			g.startCountdown(conn, player_id)
+		}()
+	}
 }
 
 
 func (g *Game) unregisterPlayer(player_id string) {
-	/*
-		If the player leaves after the game has started should we still take their current stats?
-	*/
+	/* If the player leaves after the game has started should we still take their current stats? */
 	database.RemovePlayerFromGameRedis(g.Id, player_id)
 	delete(g.Players, player_id)
 }
@@ -240,9 +266,9 @@ func (g *Game) sendActivePlayers(player_id string) {
 
 
 func (g *Game) startCountdown(conn *websocket.Conn, player_id string)  { 
-	if len(g.Players) == 1 {
-		g.sendError(conn, player_id, "Can't start game with one player")
-		return 
+	if g.State != Lobby {
+		g.sendError(conn, player_id, "Countdown can only be started from lobby")
+		return
 	}
 
 	var result Response
@@ -259,7 +285,7 @@ func (g *Game) startCountdown(conn *websocket.Conn, player_id string)  {
 	database.UpdateGameStatusRedis(g.Id, Countdown)
 
 	go func() {
-		time.Sleep(10 * time.Second)
+		time.Sleep(CountdownTimeLimit * time.Second)
 		g.startGame(conn, player_id)
 	}()
 }

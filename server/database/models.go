@@ -6,6 +6,7 @@ const (
 	TweetPrefix    = "Tweet:"
 	GuestPrefix    = "Guest:"
 	GamePrefix     = "Game:"
+	GameQueue      = "Queue"
 )
 
 type PlayerRedis struct {
@@ -20,7 +21,7 @@ type PlayerRedis struct {
 	MatchesWon         int          `json:"matchesWon"`
 	Points             float64      `json:"points"`
 	SelectedKeyboardId int          `json:"selectedKeyboardId"`
-	KeyboardsOwned     map[int]bool `json:"keyboardsOwned"` // the value indicates whether the keyboard is enabled
+	KeyboardsOwned     map[int]bool `json:"keyboardsOwned"`
 }
 
 type GameRedis struct {
