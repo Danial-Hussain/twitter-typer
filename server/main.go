@@ -11,8 +11,13 @@ import (
 
 func main() {	
 	headersOk := handlers.AllowedHeaders([]string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"})
-	originsOk := handlers.AllowedOrigins([]string{"http://localhost:5173", "https://localhost:5173"})
 	methodsOk := handlers.AllowedMethods([]string{"GET", "HEAD", "POST", "PUT", "OPTIONS"})
+	originsOk := handlers.AllowedOrigins([]string{
+		"http://localhost:5173", 
+		"https://localhost:5173", 
+		"http://twittertyper.tech", 
+		"https://twittertyper.tech",
+	})
 
 	r := mux.NewRouter()
 	r.HandleFunc("/ws", controller.WebSocketHandler)

@@ -1,4 +1,4 @@
 tmp
 server
 server.exe
-.env
+*.env

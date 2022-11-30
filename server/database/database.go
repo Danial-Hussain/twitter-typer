@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"log"
+	"server/config"
 
 	"github.com/go-redis/redis/v8"
 	dotenv "github.com/joho/godotenv"
@@ -15,13 +16,10 @@ func init() {
 	if err := dotenv.Load(".env"); err != nil {
 		log.Fatal("failed to connect to redis")
 	}
-	// redis_conn := config.Conf.RedisConnString
-	// opt, _ := redis.ParseURL(redis_conn)
-	// client := redis.NewClient(opt)
 
 	client := redis.NewClient(&redis.Options{
-		Addr: "127.0.0.1:6379",
-		Password: "",
+		Addr: config.Conf.RedisAddress,
+		Password: config.Conf.RedisPassword,
 		DB: 0,
 	})
 

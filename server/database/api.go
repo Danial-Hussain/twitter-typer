@@ -30,7 +30,7 @@ func CreateGameRedis(
 	if game_json, err := json.Marshal(game); err != nil {
 		return "", err
 	} else {
-		return id_str, RedisClient.Set(Ctx, id_str, game_json, time.Hour).Err()
+		return id_str, RedisClient.Set(Ctx, id_str, game_json, 15 * time.Minute).Err()
 	}
 }
 
@@ -299,7 +299,7 @@ func DequeueGame() (string, error) {
 		}
 
 		// Get the first game from the queue
-		game_id, err := RedisClient.LIndex(Ctx, GameQueue, 0).Result()
+		game_id, err := RedisClient.LIndex(Ctx, GameQueueKey, 0).Result()
 		if err != nil {
 			return "", err
 		}
@@ -307,26 +307,26 @@ func DequeueGame() (string, error) {
 		// Get the game json string
 		game_str, err := RedisClient.Get(Ctx, game_id).Result()
 		if err != nil {
-			RedisClient.LPop(Ctx, GameQueue).Result()
+			RedisClient.LPop(Ctx, GameQueueKey).Result()
 			continue
 		}
 
 		// Get the game data
 		var game GameRedis
 		if err = json.Unmarshal([]byte(game_str), &game); err != nil {
-			RedisClient.LPop(Ctx, GameQueue).Result()
+			RedisClient.LPop(Ctx, GameQueueKey).Result()
 			continue
 		}
 
 		// Check if the game is in the right state
 		if game.State != "Lobby" {
-			RedisClient.LPop(Ctx, GameQueue).Result()
+			RedisClient.LPop(Ctx, GameQueueKey).Result()
 			continue
 		}
 
 		// Check if the game doesn't have too many players or too little players
 		if len(game.Players) == 0 || len(game.Players) == 6 {
-			RedisClient.LPop(Ctx, GameQueue).Result()
+			RedisClient.LPop(Ctx, GameQueueKey).Result()
 			continue
 		}
 
@@ -335,6 +335,63 @@ func DequeueGame() (string, error) {
 }
 
 func Queue(game_id string) error {	
-	_, err := RedisClient.RPush(Ctx, GameQueue, game_id).Result()
+	_, err := RedisClient.RPush(Ctx, GameQueueKey, game_id).Result()
 	return err
+}
+
+func CreateStats() error {
+	var stats Stats
+	stats.AccountsCreated = 0
+	stats.GamesCreated = 0
+
+	if stats_json, err := json.Marshal(stats); err != nil {
+		return err
+	} else {
+		return RedisClient.Set(Ctx, StatsKey, stats_json, 0).Err()
+	}
+}
+
+func IncrementGamesCreated() error {
+	data, err := RedisClient.Get(Ctx, StatsKey).Result()
+	if err != nil {
+		if err = CreateStats(); err != nil {
+			return err
+		}
+		data, _ = RedisClient.Get(Ctx, StatsKey).Result()
+	}
+
+	var stats Stats
+	if err = json.Unmarshal([]byte(data), &stats); err != nil {
+		return err
+	}
+
+	stats.GamesCreated += 1
+
+	if player_json, err := json.Marshal(stats); err != nil {
+		return err
+	} else {
+		return RedisClient.Set(Ctx, StatsKey, player_json, 0).Err()
+	}
+}
+
+func IncrementAccountsCreated() error {
+	data, err := RedisClient.Get(Ctx, StatsKey).Result()
+	if err != nil {
+		if err = CreateStats(); err != nil {
+			return err
+		}
+		data, _ = RedisClient.Get(Ctx, StatsKey).Result()
+	}
+
+	var stats Stats
+	if err = json.Unmarshal([]byte(data), &stats); err != nil {
+		return err
+	}
+
+	stats.AccountsCreated += 1
+	if player_json, err := json.Marshal(stats); err != nil {
+		return err
+	} else {
+		return RedisClient.Set(Ctx, StatsKey, player_json, 0).Err()
+	}
 }

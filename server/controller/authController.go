@@ -33,6 +33,7 @@ func SigninHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Unable to create user", http.StatusBadRequest)
 			return
 		}
+		database.IncrementAccountsCreated()
 	}
 
 	if token, err := CreateJWT(key); err != nil {

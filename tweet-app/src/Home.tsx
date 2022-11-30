@@ -1,6 +1,8 @@
 import Layout from "./Layout";
 import { Stats, useAuth } from "./auth";
+import Marquee from "react-fast-marquee";
 import { useEffect, useState } from "react";
+import { AnimatedText, AnimatedBox } from "./Animated";
 import { Link, useNavigate } from "react-router-dom";
 import { Keyboard, KeyboardData } from "./Keyboards";
 import { ArrowUpIcon, EditIcon } from "@chakra-ui/icons";
@@ -30,6 +32,7 @@ import {
   AccordionPanel,
   HStack,
   VStack,
+  Image,
 } from "@chakra-ui/react";
 
 const CreateGame = () => {
@@ -37,6 +40,17 @@ const CreateGame = () => {
   const navigate = useNavigate();
 
   const create = async () => {
+    // Client side logging
+    try {
+      // @ts-ignore
+      gtag.event("create_game", {
+        event_category: "engagement",
+        value: 1,
+      });
+    } catch (err) {
+      console.log(err);
+    }
+
     let id = await createGame(user.token);
     navigate(`/game/${id}`);
   };
@@ -49,7 +63,7 @@ const CreateGame = () => {
       border={"2px"}
       boxShadow={"lg"}
       borderColor={"gray.200"}
-      width={{ base: "sm", md: "sm", lg: "md" }}
+      width={{ base: "xs", md: "sm", lg: "md" }}
     >
       <Box mb={"5"} fontSize={"4xl"} color={"twitter.800"} textAlign={"center"}>
         {"Create a Game"}
@@ -81,8 +95,21 @@ const JoinGame = () => {
 
   const join = async () => {
     let result = await joinGame(parseInt(joinCode));
-    if (result) navigate(`/game/${joinCode}`);
-    else {
+
+    if (result) {
+      // Client side logging
+      try {
+        // @ts-ignore
+        gtag.event("join_game", {
+          event_category: "engagement",
+          value: 1,
+        });
+      } catch (err) {
+        console.log(err);
+      }
+
+      navigate(`/game/${joinCode}`);
+    } else {
       setError("Invalid code");
       setTimeout(() => {
         setError("");
@@ -103,7 +130,7 @@ const JoinGame = () => {
       rounded={"md"}
       boxShadow={"lg"}
       borderColor={"gray.200"}
-      width={{ base: "sm", md: "sm", lg: "md" }}
+      width={{ base: "xs", md: "sm", lg: "md" }}
     >
       <Box mb={"5"} fontSize={"4xl"} color={"gray.800"} textAlign={"center"}>
         {title}
@@ -205,11 +232,15 @@ const KeyboardsPanel = () => {
   return (
     <>
       <HStack justify={"space-between"} align={"start"}>
-        <Box fontWeight={"semibold"} color={"gray.600"}>
+        <Box
+          color={"gray.600"}
+          fontWeight={"semibold"}
+          fontSize={{ base: "xs", md: "md" }}
+        >
           {"Select a keyboard"}
         </Box>
         <Link to={"/keyboards"}>
-          <Box>{"Get more keyboards"}</Box>
+          <Box fontSize={{ base: "xs", md: "md" }}>{"Get more keyboards"}</Box>
         </Link>
       </HStack>
       <HStack
@@ -267,7 +298,7 @@ const Profile = () => {
   }, [user]);
 
   return (
-    <Accordion allowToggle={true}>
+    <Accordion allowToggle={true} my={4}>
       <AccordionItem>
         <AccordionButton _expanded={{ bg: "blue", color: "white" }}>
           <Box flex="1" textAlign="left">
@@ -283,7 +314,7 @@ const Profile = () => {
             border={"1px"}
             rounded={"lg"}
             flexDir={"column"}
-            bgColor={"gray.100"}
+            bgColor={"gray.50"}
             borderColor={"gray.300"}
           >
             <Flex
@@ -292,11 +323,19 @@ const Profile = () => {
               flexDir={{ base: "column", md: "row" }}
             >
               <Flex align={"center"}>
-                <Box fontSize={"xl"} color={"gray.600"} mr={"2"}>
+                <Box
+                  mr={"2"}
+                  color={"gray.600"}
+                  fontSize={{ base: "md", md: "xl" }}
+                >
                   {"Your Username:"}
                 </Box>
                 <Editable value={tmpName}>
-                  <Flex align={"center"} color={"gray.500"} fontSize={"xl"}>
+                  <Flex
+                    align={"center"}
+                    color={"gray.500"}
+                    fontSize={{ base: "md", md: "xl" }}
+                  >
                     <EditIcon rounded={"sm"} mx={"4px"} />
                     <EditablePreview />
                     <EditableInput
@@ -360,27 +399,75 @@ const Profile = () => {
   );
 };
 
+const TwitterImageMarquee = () => {
+  const people = [
+    "barackobama",
+    "billgates",
+    "christianoronaldo",
+    "dwaynejohnson",
+    "elonmusk",
+    "jackdorsey",
+    "joerogan",
+    "katyperry",
+    "lebronjames",
+    "michaelsaylor",
+    "mrbeast",
+    "navalravikant",
+    "taylorswift",
+    "vitalikbuterin",
+    "jimmyfallon",
+    "ellendegeneres",
+    "lexfridman",
+    "miketrout",
+    "drake",
+    "michelleobama",
+    "marcandreessen",
+    "sahilbloom",
+  ];
+  return (
+    <Box my={"5"} maxW={{ base: "xs", md: "3xl", lg: "full" }}>
+      <Marquee speed={12} pauseOnHover={true} direction={"right"} delay={1.5}>
+        {people.map((p, i) => (
+          <Image
+            key={i}
+            mx={"2"}
+            width={"10"}
+            height={"10"}
+            border={"2px"}
+            rounded={"full"}
+            src={`/creators/${p}.jpg`}
+            borderColor={"twitter.500"}
+          />
+        ))}
+      </Marquee>
+      <Box textAlign={"center"} color={"gray.500"} mt={"4"}>
+        {"Tweets from your favorite creators"}
+      </Box>
+    </Box>
+  );
+};
+
 const Home = () => {
   return (
     <Layout>
       <Box mx={"auto"}>
-        <Box
-          fontSize={"6xl"}
-          color={"gray.700"}
+        <AnimatedText
+          springy={true}
+          fontSize={{ base: "4xl", md: "6xl" }}
           fontWeight={"bold"}
-          textAlign={"center"}
-        >
-          {"TwitterTyper"}
-        </Box>
-
-        <Box
-          fontSize={"2xl"}
-          textAlign={"center"}
-          mb={"6"}
-          color={"twitter.500"}
-        >
-          {"The typeracer game for twitter enthusiasts!"}
-        </Box>
+          fontColor={"gray.700"}
+          text={"TwitterTyper"}
+          transitionDelay={0}
+        />
+        <AnimatedText
+          springy={false}
+          fontSize={{ base: "lg", md: "2xl" }}
+          fontWeight={"normal"}
+          fontColor={"twitter.500"}
+          text={"The typeracer game for twitter enthusiasts!"}
+          transitionDelay={0.55}
+        />
+        <TwitterImageMarquee />
         <Profile />
         <Flex
           mt={"6"}

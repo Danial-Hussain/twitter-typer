@@ -2,20 +2,17 @@ package controller
 
 import (
 	"encoding/json"
-	"log"
 	"server/database"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
 )
 
 type Response struct {
-	Action string `json:"action"` 
-	Data interface{} `json:"data"`
+	Action string      `json:"action"` 
+	Data   interface{} `json:"data"`
 }
-
 
 const (
 	Typing               = "Typing"
@@ -34,7 +31,6 @@ const (
 	PrivateGame          = "PrivateGame"
 )
 
-
 type PlayerGameStatus struct {
 	State            string
 	Points           float64 
@@ -46,7 +42,6 @@ type PlayerGameStatus struct {
 	IncorrectAnswers int 
 	CurrentLetterIdx int
 }
-
 
 func NewPlayerGameStatus() *PlayerGameStatus {
 	return &PlayerGameStatus{
@@ -60,7 +55,6 @@ func NewPlayerGameStatus() *PlayerGameStatus {
 	}
 }
 
-
 type Player struct {
 	Id      string
 	Name    string
@@ -69,7 +63,6 @@ type Player struct {
 	Status  PlayerGameStatus
 	Keyboard Keyboard
 }
-
 
 func NewPlayer(
 	id string, 
@@ -83,8 +76,8 @@ func NewPlayer(
 		Name: name, 
 		Conn: conn, 
 		Creator: creator,
-		Status: *NewPlayerGameStatus(),
 		Keyboard: keyboard,
+		Status: *NewPlayerGameStatus(),
 	}
 }
 
@@ -103,17 +96,11 @@ type Game struct {
 	Players 	     map[string]*Player
 }
 
-
 func NewGame(player_id string, game_type string) (*Game, error) {
 	tweet_id, tweet, tweet_word_count, author, author_handle, choices := generateTweet()
 
 	if game_id, err := database.CreateGameRedis(
-		Lobby, 
-		tweet_id, 
-		player_id, 
-		MaxPlayersInGame, 
-		RoundTimeLimit,
-	); err != nil {
+			Lobby, tweet_id, player_id, MaxPlayersInGame, RoundTimeLimit); err != nil {
 		return nil, err
 	} else {
 		game := Game{
@@ -133,7 +120,6 @@ func NewGame(player_id string, game_type string) (*Game, error) {
 	}
 }
 
-
 func (g *Game) broadcastMessage(message []byte) {
 	for i := range g.Players {
 		g.Players[i].Conn.WriteMessage(
@@ -141,7 +127,6 @@ func (g *Game) broadcastMessage(message []byte) {
 		)
 	}
 }
-
 
 func (g *Game) sendError(conn *websocket.Conn, player_id string, message string) {
 	var result Response 
@@ -155,7 +140,6 @@ func (g *Game) sendError(conn *websocket.Conn, player_id string, message string)
 
 	conn.WriteMessage(websocket.TextMessage, result_json)
 }
-
 
 func (g *Game) registerPlayer(
 	message map[string]*json.RawMessage, 
@@ -184,8 +168,8 @@ func (g *Game) registerPlayer(
 	}
 
 	var result Response
-	result.Action = "sendGameType"
 	result.Data = g.Type
+	result.Action = "sendGameType"
 		
 	if result_json, err := json.Marshal(result); err != nil {
 		return
@@ -204,13 +188,10 @@ func (g *Game) registerPlayer(
 	}
 }
 
-
 func (g *Game) unregisterPlayer(player_id string) {
-	/* If the player leaves after the game has started should we still take their current stats? */
 	database.RemovePlayerFromGameRedis(g.Id, player_id)
 	delete(g.Players, player_id)
 }
-
 
 func (g *Game) sendActivePlayers(player_id string) {
 	type PlayerInfo struct {
@@ -228,7 +209,6 @@ func (g *Game) sendActivePlayers(player_id string) {
 	}
 	
 	for i := range g.Players {
-
 		var result Response
 		var player_info []PlayerInfo
 		
@@ -252,18 +232,14 @@ func (g *Game) sendActivePlayers(player_id string) {
 
 		result.Action = "sendActivePlayers"
 		result.Data = player_info
-
-		result_json, err := json.Marshal(result)	
-		if err != nil {
-			return
-		}
 		
-		g.Players[i].Conn.WriteMessage(
-			websocket.TextMessage, result_json,
-		)
+		if result_json, err := json.Marshal(result); err != nil {
+			return
+		} else {
+			g.Players[i].Conn.WriteMessage(websocket.TextMessage, result_json)
+		}
 	}
 }
-
 
 func (g *Game) startCountdown(conn *websocket.Conn, player_id string)  { 
 	if g.State != Lobby {
@@ -275,14 +251,13 @@ func (g *Game) startCountdown(conn *websocket.Conn, player_id string)  {
 	result.Action = "startCountdown"
 	result.Data = Countdown
 
-	result_json, err := json.Marshal(result)
-	if err != nil {
+	if result_json, err := json.Marshal(result); err != nil {
 		return 
+	} else {
+		g.State = Countdown
+		g.broadcastMessage(result_json)
+		database.UpdateGameStatusRedis(g.Id, Countdown)
 	}
-
-	g.State = Countdown
-	g.broadcastMessage(result_json)
-	database.UpdateGameStatusRedis(g.Id, Countdown)
 
 	go func() {
 		time.Sleep(CountdownTimeLimit * time.Second)
@@ -290,14 +265,13 @@ func (g *Game) startCountdown(conn *websocket.Conn, player_id string)  {
 	}()
 }
 
-func (g *Game) startGame(conn *websocket.Conn, player_id string) {
-	var result Response 
-	
+func (g *Game) startGame(conn *websocket.Conn, player_id string) {	
 	if g.State != Countdown {
 		g.sendError(conn, player_id, "Not in countdown mode")
 		return
 	}
 
+	var result Response 
 	result.Action = "startGame"
 	tmp := make(map[string]interface{})
 	tmp["state"] = Started
@@ -327,19 +301,17 @@ func (g *Game) startGame(conn *websocket.Conn, player_id string) {
 	}()
 }
 
-
 func (g *Game) playerMove(message map[string]*json.RawMessage, conn *websocket.Conn, player_id string) {
 	type Data struct {
 		Key string `json:"key"`
 	}
 
-	if (g.Players[player_id].Status.State == Guessing || g.Players[player_id].Status.State == Completed) {
+	if (g.Players[player_id].Status.State != Typing) {
 		return
 	}
 
 	var data Data
 	if err := json.Unmarshal(*message["data"], &data); err != nil {
-		log.Println(err)
 		return
 	}
 
@@ -358,19 +330,17 @@ func (g *Game) playerMove(message map[string]*json.RawMessage, conn *websocket.C
 	g.sendActivePlayers(player_id)
 }
 
-
 func (g *Game) playerGuess(message map[string]*json.RawMessage, conn *websocket.Conn, player_id string) {
 	type Data struct {
 		Guess string `json:"guess"`
 	}
 
-	if g.Players[player_id].Status.State == Completed {
+	if g.Players[player_id].Status.State != Guessing {
 		return
 	}
 
 	var data Data
 	if err := json.Unmarshal(*message["data"], &data); err != nil {
-		log.Println(err)
 		return
 	}
 
@@ -386,7 +356,6 @@ func (g *Game) playerGuess(message map[string]*json.RawMessage, conn *websocket.
 	}
 }
 
-
 func (g *Game) startFinish(player_id string) {
 	if g.State != Started {
 		return
@@ -400,9 +369,7 @@ func (g *Game) startFinish(player_id string) {
 	for i := range g.Players {
 		startTime := g.Players[i].Status.TypingStartTime
 		endTime := g.Players[i].Status.TypingEndTime
-
-		words := wordsCompleted(g.Tweet, g.Players[i].Status.CurrentLetterIdx)
-		words_per_minute := float64(words) / endTime.Sub(startTime).Minutes()
+		words_per_minute := (float64(g.Players[i].Status.CurrentLetterIdx) / 5) / endTime.Sub(startTime).Minutes()
 
 		g.Players[i].Status.Points += words_per_minute
 		g.Players[i].Status.Speed = words_per_minute
@@ -464,13 +431,4 @@ func (g *Game) countCompletedPlayers() int {
 		}
 	}
 	return count
-}
-
-func wordsCompleted(tweet string, currentIdx int) int {
-	tweet_subset := tweet[0:currentIdx]
-	words := len(strings.Split(tweet_subset, " "))
-	if currentIdx + 1 < len(tweet) && string(tweet[currentIdx + 1]) != " " {
-		words -= 1
-	}
-	return words
 }

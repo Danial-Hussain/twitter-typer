@@ -6,7 +6,8 @@ const (
 	TweetPrefix    = "Tweet:"
 	GuestPrefix    = "Guest:"
 	GamePrefix     = "Game:"
-	GameQueue      = "Queue"
+	GameQueueKey   = "Queue"
+	StatsKey       = "Stats"
 )
 
 type PlayerRedis struct {
@@ -32,4 +33,9 @@ type GameRedis struct {
 	MaxPlayers int             `json:"maxPlayers"`
 	TimeLimit  int             `json:"timeLimit"`
 	Players    map[string]bool `json:"players"`
+}
+
+type Stats struct {
+	GamesCreated    uint64 `json:"gamesCreated"`
+	AccountsCreated uint64 `json:"accountsCreated"`
 }

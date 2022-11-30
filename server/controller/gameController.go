@@ -25,8 +25,8 @@ func JoinGameHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if Games[game_id].State != Lobby {
-		http.Error(w, "game has already started", 400)
+	if Games[game_id].State != Lobby || len(Games[game_id].Players) == Games[game_id].MaxPlayers {
+		http.Error(w, "can't join this game", 400)
 		return
 	}
 
@@ -41,12 +41,15 @@ func JoinRandomGameHandler(w http.ResponseWriter, r *http.Request) {
 		// If there is no game the user can join -> create a new game and add to queue
 		if game, err := NewGame(player_id, PrivateGame); err != nil {
 			http.Error(w, "failed to create game", http.StatusBadRequest)
+			return
 		} else {
+			database.IncrementGamesCreated()
 			database.Queue(game.Id)
 			Games[game.Id] = game
 			shortened_game_id := strings.Split(game.Id, ":")[1]
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(shortened_game_id)
+			return
 		}
 	} else {
 		// If there is a game the user can join -> return that game
@@ -62,6 +65,7 @@ func CreateGameHandler(w http.ResponseWriter, r *http.Request) {
 	if game, err := NewGame(player_id, PublicGame); err != nil {
 		http.Error(w, "failed to create game", http.StatusBadRequest)
 	} else {
+		database.IncrementGamesCreated()
 		Games[game.Id] = game
 		shortened_game_id := strings.Split(game.Id, ":")[1]
 		w.Header().Set("Content-Type", "application/json")
@@ -73,7 +77,6 @@ func GetAllKeyboardsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(Keyboards)
 }
-
 
 func WebSocketHandler(w http.ResponseWriter, r *http.Request) {
 	game_id := database.GamePrefix + r.URL.Query().Get("id")
@@ -88,13 +91,17 @@ func WebSocketHandler(w http.ResponseWriter, r *http.Request) {
 	} 
 
 	conn, err := upgrader.Upgrade(w, r, nil)
-
 	if err != nil {
 		http.Error(w, "failed to create connection", 400)
 		return
 	}
 
-	var game *Game = Games[game_id]
+	game, ok := Games[game_id]
+	if !ok {
+		http.Error(w, "game doesn't exist", 400)
+		return
+	}
+
 	var message map[string]*json.RawMessage
 
 	defer conn.Close()
@@ -144,13 +151,9 @@ func WebSocketHandler(w http.ResponseWriter, r *http.Request) {
 			if action == "playerGuess" {
 				game.playerGuess(message, conn, player_id)
 			}
-
-		case Finished:
-
 		}
 	}
 }
-
 
 func GetPlayerStatsHandler(w http.ResponseWriter, r *http.Request) {
 	player_id := r.Context().Value("player").(string)
@@ -158,7 +161,6 @@ func GetPlayerStatsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(result)	
 }
-
 
 func GetPlayerKeyboardsHandler(w http.ResponseWriter, r *http.Request) {
 	player_id := r.Context().Value("player").(string)

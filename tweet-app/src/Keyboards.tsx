@@ -77,12 +77,12 @@ const Keyboards = () => {
 
   useEffect(() => {
     (async () => {
-      let retrievedKeyboards = await getAllKeyboards();
-      setKeyboards(retrievedKeyboards);
-      setTimeout(() => setShowKeyboards(true), 1000);
-
       let stats = await getStats();
       setPlayerStats(stats);
+
+      let retrievedKeyboards = await getAllKeyboards();
+      setKeyboards(retrievedKeyboards);
+      setTimeout(() => setShowKeyboards(true), 500);
     })();
   }, []);
 
@@ -133,6 +133,11 @@ const Keyboards = () => {
             <Image src={"./loader.svg"} />
           )}
         </Flex>
+        {keyboards.length !== 0 && (
+          <Box textAlign={"center"} mt={"4"} fontSize={"2xl"}>
+            {"More coming soon!"}
+          </Box>
+        )}
       </Box>
     </Layout>
   );

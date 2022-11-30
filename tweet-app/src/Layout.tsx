@@ -17,23 +17,26 @@ const Navbar = () => {
   const { user, signIn, signOut } = useAuth();
 
   useEffect(() => {
-    // @ts-ignore
-    google.accounts.id.initialize({
-      client_id: gapi_client,
-      callback: signIn,
-    });
+    try {
+      // @ts-ignore
+      google.accounts.id.initialize({
+        client_id: gapi_client,
+        callback: signIn,
+      });
 
-    // @ts-ignore
-    google.accounts.id.renderButton(document.getElementById("signIn"), {
-      theme: "outline",
-      size: "medium",
-    });
+      // @ts-ignore
+      google.accounts.id.renderButton(document.getElementById("signIn"), {
+        theme: "outline",
+        size: "medium",
+      });
+    } catch (err) {
+      console.log(err);
+    }
   }, []);
 
   return (
     <Flex bg={"black"} height={"16"} width={"full"}>
       <Flex
-        px={"6"}
         mx={"auto"}
         maxW={"8xl"}
         width={"full"}
@@ -41,15 +44,16 @@ const Navbar = () => {
         align={"center"}
         direction={"row"}
         justify={"space-between"}
+        px={{ base: "2", md: "6" }}
       >
         <Link href="/">
-          <Box fontSize={{ base: "lg", md: "2xl" }} color={"gray.100"}>
+          <Box fontSize={{ base: "sm", md: "2xl" }} color={"gray.100"}>
             {"TwitterTyper"}
           </Box>
         </Link>
-        <HStack spacing={"6"} align={"center"}>
+        <HStack spacing={{ base: "2", md: "6" }} align={"center"}>
           <Link href="/keyboards">
-            <Box fontSize={{ base: "lg", md: "2xl" }} color={"gray.100"}>
+            <Box fontSize={{ base: "sm", md: "2xl" }} color={"gray.100"}>
               {"Keyboards"}
             </Box>
           </Link>

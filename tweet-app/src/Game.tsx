@@ -68,7 +68,7 @@ const Lobby: React.FC<LobbyProps> = ({ gameManager, performAction }) => {
   const [countdownValue, setCountdownValue] = useState(17);
 
   useEffect(() => {
-    let interval = 0;
+    let interval: NodeJS.Timer;
     if (gameManager.gameType == "PrivateGame") {
       interval = setInterval(
         () => setCountdownValue((countdownValue) => countdownValue - 1),
@@ -263,20 +263,21 @@ const Countdown: React.FC<CountdownProps> = ({ timer }) => {
         >
           <ModalOverlay />
           <ModalContent>
-            <ModalBody>
+            <ModalBody bgColor={"gray.50"}>
               <Flex
                 width={"full"}
                 align={"center"}
                 justify={"center"}
                 flexDir={"column"}
               >
-                <Box textAlign={"center"} mb={"4"} fontSize={"lg"}>
+                <Box textAlign={"center"} mb={"4"} fontSize={"xl"}>
                   {"Game starting in..."}
                 </Box>
                 <CircularProgress
                   max={timer}
-                  value={timer - countdownValue}
+                  size={"120px"}
                   color="green.400"
+                  value={timer - countdownValue}
                 >
                   <CircularProgressLabel>
                     {countdownValue}s
@@ -457,7 +458,7 @@ const Game: React.FC<GameProps> = ({ gameManager, performAction }) => {
   }, []);
 
   useEffect(() => {
-    let interval = 0;
+    let interval: NodeJS.Timer;
     if (gameManager.state === "Started" && timeRemaining > 0) {
       interval = setInterval(
         () => setTimeRemaining((timeRemaining) => timeRemaining - 1),
@@ -477,10 +478,12 @@ const Game: React.FC<GameProps> = ({ gameManager, performAction }) => {
           choices={gameManager.tweet.authorChoices}
         />
       )}
-      <Answer
-        tweet={gameManager.tweet.tweet}
-        currentIdx={user.currentLetterIdx}
-      />
+      {gameManager.state === "Started" && (
+        <Answer
+          tweet={gameManager.tweet.tweet}
+          currentIdx={user.currentLetterIdx}
+        />
+      )}
       <Divider orientation="horizontal" my={"4"} />
       <HStack>
         <TimeIcon width={"5"} height={"5"} />

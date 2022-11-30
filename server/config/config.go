@@ -10,7 +10,8 @@ import (
 type Config struct {
 	HTTPServerAddress string
 	AccessTokenKey    string
-	RedisConnString   string
+	RedisAddress      string
+	RedisPassword     string
 }
 
 var Conf *Config
@@ -22,11 +23,13 @@ func init() {
 
 	http_addr := os.Getenv("HTTP_SERVER_ADDRESS")
 	access_token_key := os.Getenv("TOKEN_KEY")
-	redis_conn_string := os.Getenv("REDIS_CONN")
+	redis_address := os.Getenv("REDIS_ADDR")
+	redis_password := os.Getenv("REDIS_PASS")
 
 	var config Config
 	config.HTTPServerAddress = http_addr
 	config.AccessTokenKey = access_token_key
-	config.RedisConnString = redis_conn_string
+	config.RedisAddress = redis_address
+	config.RedisPassword = redis_password
 	Conf = &config
 }
