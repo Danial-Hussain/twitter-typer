@@ -96,4 +96,16 @@ accounts = [
    "StephenCurry30",
    "shl",
    "sahilbloom",
+   "VitalikButerin",
+   "saylor",
+   "nntaleb",
+   "ParikPatelCFA",
+   "CathieDWood",
+   "RayDalio",
+   "ChrisJBakke",
+   "paulg",
+   "micsolana",
+   "chamath",
+   "DavidSacks",
+   "balajis"
 ]
