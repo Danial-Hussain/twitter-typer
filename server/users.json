@@ -178,5 +178,29 @@
     "user_id": 42562446,
     "username": "StephenCurry30"
   },
-  { "name": "Sahil Lavingia", "user_id": 16347964, "username": "shl" }
+  { "name": "Sahil Lavingia", "user_id": 16347964, "username": "shl" },
+  { "name": "Sahil Bloom", "user_id": 312681953, "username": "SahilBloom" },
+  { "name": "vitalik.eth", "user_id": 295218901, "username": "VitalikButerin" },
+  {
+    "name": "Michael Saylor\u26a1\ufe0f",
+    "user_id": 244647486,
+    "username": "saylor"
+  },
+  {
+    "name": "Nassim Nicholas Taleb",
+    "user_id": 381289719,
+    "username": "nntaleb"
+  },
+  {
+    "name": "Dr. Parik Patel, BA, CFA, ACCA Esq.",
+    "user_id": 1295526279194828800,
+    "username": "ParikPatelCFA"
+  },
+  { "name": "Cathie Wood", "user_id": 2361631088, "username": "CathieDWood" },
+  { "name": "Ray Dalio", "user_id": 62603893, "username": "RayDalio" },
+  { "name": "Chris Bakke", "user_id": 1361124510, "username": "ChrisJBakke" },
+  { "name": "Paul Graham", "user_id": 183749519, "username": "paulg" },
+  { "name": "Mike Solana", "user_id": 18989355, "username": "micsolana" },
+  { "name": "Chamath Palihapitiya", "user_id": 3291691, "username": "chamath" },
+  { "name": "David Sacks", "user_id": 1137701, "username": "DavidSacks" }
 ]

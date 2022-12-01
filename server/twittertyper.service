@@ -1,0 +1,14 @@
+[Unit]
+Description=web server for twittertyper
+After=network.target
+
+[Service]
+WorkingDirectory=/home/ahussain/server/
+ExecStart=/home/ahussain/server/server
+User=root
+Group=root
+Restart=always
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target

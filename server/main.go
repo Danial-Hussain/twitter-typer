@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"server/config"
 	"server/controller"
 	"server/middleware"
 
@@ -54,5 +55,5 @@ func main() {
 		http.HandlerFunc(controller.PlayerUnlockedKeyboardHandler)),
 	).Methods("GET")
 	
-	http.ListenAndServe("127.0.0.1:8080", handlers.CORS(originsOk, headersOk, methodsOk)(r))
+	http.ListenAndServe(config.Conf.HTTPServerAddress, handlers.CORS(originsOk, headersOk, methodsOk)(r))
 }
