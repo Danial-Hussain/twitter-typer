@@ -8,7 +8,7 @@ export const server = import.meta.env.DEV
 
 export const socket = import.meta.env.DEV
   ? "ws://localhost:8080/ws"
-  : "ws://twittertyper.tech/ws";
+  : "ws://server.twittertyper.tech/ws";
 
 export const gapi_client =
   "136033440281-oa9fambuee7l3tmfb5an2mnlf3mhkm2j.apps.googleusercontent.com";
