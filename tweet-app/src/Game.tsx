@@ -517,33 +517,35 @@ const Game: React.FC<GameProps> = ({ gameManager, performAction }) => {
           </Flex>
         </Flex>
       </Box>
-      {opps.map((opp, i) => (
-        <Flex align={"start"} key={i} mt={"4"}>
-          <Image
-            rounded={"xl"}
-            width={"200px"}
-            height={"200px"}
-            src={`/keyboards/transparent-${
-              opp.keyboardLink.split("/keyboards/")[1]
-            }`}
-          />
-          <Flex ml={8} flexDir={"column"} align={"start"}>
-            <Box
-              mb={"2"}
-              fontSize={"xl"}
-              textAlign={"center"}
-              fontWeight={"semibold"}
-            >
-              {opp.name}
-            </Box>
-            <Progress
-              width={"md"}
-              value={opp.currentLetterIdx}
-              max={gameManager.tweet.tweet.length}
+      {[...opps]
+        .sort((a, b) => (a.name > b.name ? 1 : -1))
+        .map((opp, i) => (
+          <Flex align={"start"} key={i} mt={"4"}>
+            <Image
+              rounded={"xl"}
+              width={"200px"}
+              height={"200px"}
+              src={`/keyboards/transparent-${
+                opp.keyboardLink.split("/keyboards/")[1]
+              }`}
             />
+            <Flex ml={8} flexDir={"column"} align={"start"}>
+              <Box
+                mb={"2"}
+                fontSize={"xl"}
+                textAlign={"center"}
+                fontWeight={"semibold"}
+              >
+                {opp.name}
+              </Box>
+              <Progress
+                width={"md"}
+                value={opp.currentLetterIdx}
+                max={gameManager.tweet.tweet.length}
+              />
+            </Flex>
           </Flex>
-        </Flex>
-      ))}
+        ))}
       {user.state === "Completed" && (
         <Box fontSize={"lg"} mt={"4"}>
           {"Waiting for the remaining players to finish..."}

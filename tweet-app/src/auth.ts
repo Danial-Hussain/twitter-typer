@@ -1,3 +1,4 @@
+import words from "./words";
 import useStorage from "./hooks";
 import jwt_decode from "jwt-decode";
 import { KeyboardData } from "./Keyboards";
@@ -44,7 +45,9 @@ const emptyStats: Stats = {
 };
 
 const defaultGuest: User = {
-  name: "guest",
+  name: `guest-${words[Math.floor(Math.random() * words.length)]}-${Math.floor(
+    Math.random() * 500
+  )}`,
   token: "",
   email: "",
   picture: "",

@@ -339,6 +339,7 @@ const Profile = () => {
                     <EditIcon rounded={"sm"} mx={"4px"} />
                     <EditablePreview />
                     <EditableInput
+                      maxLength={255}
                       onChange={(e) => setTmpName(e.target.value)}
                     />
                     {tmpName != user.name && (
@@ -423,6 +424,7 @@ const TwitterImageMarquee = () => {
     "michelleobama",
     "marcandreessen",
     "sahilbloom",
+    "paulgraham",
   ];
   return (
     <Box my={"5"} maxW={{ base: "xs", md: "3xl", lg: "full" }}>
