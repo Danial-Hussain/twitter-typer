@@ -39,7 +39,7 @@ func JoinRandomGameHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		// If there is no game the user can join -> create a new game and add to queue
-		if game, err := NewGame(player_id, PrivateGame); err != nil {
+		if game, err := NewGame(player_id, PublicGame); err != nil {
 			http.Error(w, "failed to create game", http.StatusBadRequest)
 			return
 		} else {
@@ -62,7 +62,7 @@ func JoinRandomGameHandler(w http.ResponseWriter, r *http.Request) {
 func CreateGameHandler(w http.ResponseWriter, r *http.Request) {
 	player_id := r.Context().Value("player").(string)
 
-	if game, err := NewGame(player_id, PublicGame); err != nil {
+	if game, err := NewGame(player_id, PrivateGame); err != nil {
 		http.Error(w, "failed to create game", http.StatusBadRequest)
 	} else {
 		database.IncrementGamesCreated()
@@ -136,11 +136,23 @@ func WebSocketHandler(w http.ResponseWriter, r *http.Request) {
 			if action == "registerPlayer" {
 				game.registerPlayer(message, conn, player_id, player_keyboard)
 				game.sendActivePlayers(player_id)
+
+				// Start public games on first player join
+				if game.Type == PublicGame {
+					game.startCountdown(conn, player_id)
+				}
 			}
 
 			if action == "startCountdown" {
 				game.sendActivePlayers(player_id)
 				game.startCountdown(conn, player_id)
+			}
+
+		case Countdown:
+			if action == "registerPlayer" && game.Type == PublicGame {
+				game.registerPlayer(message, conn, player_id, player_keyboard)
+				game.startCountdown(conn, player_id)
+				game.sendActivePlayers(player_id)
 			}
 
 		case Started:

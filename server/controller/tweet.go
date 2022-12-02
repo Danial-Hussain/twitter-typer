@@ -47,6 +47,11 @@ func generateTweet() (string, string, int, string, string, []string) {
 		}
 	}
 
+	// Shuffle the author choices
+	rand.Shuffle(len(author_choices), func(i, j int) { 
+		author_choices[i], author_choices[j] = author_choices[j], author_choices[i]
+	})
+
 	author := tweet.AuthorName
 	tweet_content := tweet.Content
 	author_handle := tweet.AuthorUsername

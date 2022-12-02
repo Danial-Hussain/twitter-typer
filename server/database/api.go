@@ -21,10 +21,6 @@ func CreateGameRedis(
 
 	game.Id = id_str
 	game.State = state
-	game.TweetId = tweet_id
-	game.CreatorId = creator
-	game.TimeLimit = time_limit
-	game.MaxPlayers = max_players
 	game.Players = make(map[string]bool)
 
 	if game_json, err := json.Marshal(game); err != nil {
@@ -319,7 +315,7 @@ func DequeueGame() (string, error) {
 		}
 
 		// Check if the game is in the right state
-		if game.State != "Lobby" {
+		if game.State != "Countdown" && game.State != "Lobby" {
 			RedisClient.LPop(Ctx, GameQueueKey).Result()
 			continue
 		}

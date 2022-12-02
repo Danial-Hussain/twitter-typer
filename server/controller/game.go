@@ -25,7 +25,8 @@ const (
 	GuessPointsBonus     = 10
 	MaxPlayersInGame     = 6
 	RoundTimeLimit       = 45
-	CountdownTimeLimit   = 10
+	PublicGameCountdown  = 20
+	PrivateGameCountdown = 5
 	PrivateGameTimeLimit = 15
 	PublicGame           = "PublicGame"
 	PrivateGame          = "PrivateGame"
@@ -82,18 +83,19 @@ func NewPlayer(
 }
 
 type Game struct {
-	Id            string
-	Type          string
-	Winner        string
-	TimeLimit     int
-	MaxPlayers    int
-	State         string
-	Tweet         string
-	TweetWordCnt  int
-	Author        string
-	AuthorHandle  string
-	AuthorChoices []string
-	Players 	     map[string]*Player
+	Id                string
+	Type               string
+	Winner             string
+	TimeLimit          int
+	MaxPlayers         int
+	State              string
+	Tweet              string
+	TweetWordCnt       int
+	Author             string
+	AuthorHandle       string
+	AuthorChoices      []string
+	CountdownStartTime time.Time
+	Players 	          map[string]*Player
 }
 
 func NewGame(player_id string, game_type string) (*Game, error) {
@@ -147,14 +149,21 @@ func (g *Game) registerPlayer(
 	player_id string, 
 	keyboard Keyboard,
 ) {
+	// Prevent too many players from joining one game
 	if len(g.Players) == g.MaxPlayers {
 		g.sendError(conn, player_id, "Too many players")
 		return
 	}
 
-	if g.State != Lobby {
+	// For private games, users can only join through lobby
+	if g.Type == PrivateGame && g.State != Lobby {
 		g.sendError(conn, player_id, "Game has already started")
 		return
+	}
+
+	// For public games, users can only join during lobby or countdown
+	if g.Type == PublicGame && g.State != Countdown && g.State != Lobby {
+		g.sendError(conn, player_id, "Game has already started")
 	}
 
 	type Data struct {
@@ -179,13 +188,6 @@ func (g *Game) registerPlayer(
 
 	g.Players[player_id] = NewPlayer(player_id, data.Name, len(g.Players) == 0, conn, keyboard)
 	database.AddPlayerToGameRedis(g.Id, player_id)
-
-	if len(g.Players) == 1 && g.Type == PrivateGame {
-		go func() {
-			time.Sleep(PrivateGameTimeLimit * time.Second)
-			g.startCountdown(conn, player_id)
-		}()
-	}
 }
 
 func (g *Game) unregisterPlayer(player_id string) {
@@ -242,27 +244,52 @@ func (g *Game) sendActivePlayers(player_id string) {
 }
 
 func (g *Game) startCountdown(conn *websocket.Conn, player_id string)  { 
-	if g.State != Lobby {
+	// Countdown for private games can only be started from the lobby
+	if g.Type == PrivateGame && g.State != Lobby {
 		g.sendError(conn, player_id, "Countdown can only be started from lobby")
 		return
 	}
 
-	var result Response
-	result.Action = "startCountdown"
-	result.Data = Countdown
-
-	if result_json, err := json.Marshal(result); err != nil {
-		return 
-	} else {
-		g.State = Countdown
-		g.broadcastMessage(result_json)
-		database.UpdateGameStatusRedis(g.Id, Countdown)
+	var timer int
+	if g.Type == PublicGame { 
+		timer = PublicGameCountdown 
+	} else { 
+		timer = PrivateGameCountdown 
 	}
 
-	go func() {
-		time.Sleep(CountdownTimeLimit * time.Second)
-		g.startGame(conn, player_id)
-	}()
+	if g.State != Countdown {
+		// Countdown hasn't started -> start countdown
+		g.State = Countdown
+		g.CountdownStartTime = time.Now()
+
+		var result Response = Response{
+			Action: "startCountdown", 
+			Data: struct{ State string `json:"state"`; Clock int `json:"clock"` }{ 
+				State: Countdown, Clock: timer,
+			}}
+
+		if result_json, err := json.Marshal(result); err != nil { return } else {
+			g.broadcastMessage(result_json)
+			database.UpdateGameStatusRedis(g.Id, Countdown)
+		}
+
+		go func() {
+			time.Sleep(time.Duration(timer) * time.Second)
+			g.startGame(conn, player_id)
+		}()
+
+	} else {
+		// Countdown has already started -> send time remaining
+		var result Response = Response{
+			Action: "startCountdown",
+			Data: struct{ State string `json:"state"`; Clock int `json:"clock"` }{
+				State: Countdown, Clock: timer - int(time.Since(g.CountdownStartTime).Seconds()),
+			}}
+		
+		if result_json, err := json.Marshal(result); err != nil { return } else {
+			conn.WriteMessage(websocket.TextMessage, result_json)
+		}
+	}
 }
 
 func (g *Game) startGame(conn *websocket.Conn, player_id string) {	
@@ -419,8 +446,8 @@ func (g *Game) startFinish(player_id string) {
 }
 
 func (g *Game) removeGame() {
-	delete(Games, g.Id)
 	database.DeleteGameRedis(g.Id)
+	delete(Games, g.Id)
 }
 
 func (g *Game) countCompletedPlayers() int {

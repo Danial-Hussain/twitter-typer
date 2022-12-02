@@ -298,7 +298,7 @@ const Profile = () => {
   }, [user]);
 
   return (
-    <Accordion allowToggle={true} my={4}>
+    <Accordion allowToggle={true} my={4} mx={"auto"} maxW={"4xl"}>
       <AccordionItem>
         <AccordionButton _expanded={{ bg: "blue", color: "white" }}>
           <Box flex="1" textAlign="left">

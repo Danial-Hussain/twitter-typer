@@ -58,7 +58,7 @@ interface SendActivePlayersMessage {
 
 interface StartCountdownMessage {
   action: "startCountdown";
-  data: GameState;
+  data: { state: GameState; clock: number };
 }
 
 interface StartGameMessage {
@@ -126,6 +126,7 @@ export interface GameManager {
   playerName: string;
   timeLimit: number;
   gameType: GameType;
+  countdownTimer: number;
 }
 
 export function useGameManager(
@@ -142,6 +143,7 @@ export function useGameManager(
     playerName: playerName,
     timeLimit: 45,
     gameType: "PrivateGame",
+    countdownTimer: 0,
   });
 
   const PING_RATE = 30000;
@@ -191,7 +193,8 @@ export function useGameManager(
         case "startCountdown":
           setGameManager((gameManager) => ({
             ...gameManager,
-            state: message.data,
+            state: message.data.state,
+            countdownTimer: message.data.clock,
           }));
           break;
         case "startGame":

@@ -26,13 +26,9 @@ type PlayerRedis struct {
 }
 
 type GameRedis struct {
-	Id         string          `json:"id"`
-	State      string          `json:"state"`
-	TweetId    string          `json:"tweetId"`
-	CreatorId  string          `json:"creator"`
-	MaxPlayers int             `json:"maxPlayers"`
-	TimeLimit  int             `json:"timeLimit"`
-	Players    map[string]bool `json:"players"`
+	Id      string          `json:"id"`
+	State   string          `json:"state"`
+	Players map[string]bool `json:"players"`
 }
 
 type Stats struct {

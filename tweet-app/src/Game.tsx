@@ -1,9 +1,11 @@
 import Layout from "./Layout";
+import { useAuth } from "./auth";
 import useStorage from "./hooks";
 import { client } from "./config";
 import Confetti from "react-confetti";
+import { joinRandomGame } from "./api";
 import { useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useGameManager, GameManager, Action } from "./logic";
 
 import {
@@ -45,7 +47,6 @@ import {
   useToast,
   useClipboard,
 } from "@chakra-ui/react";
-import { useAuth } from "./auth";
 
 interface LobbyProps {
   gameManager: GameManager;
@@ -56,7 +57,7 @@ const Lobby: React.FC<LobbyProps> = ({ gameManager, performAction }) => {
   const url = `${client}${location.pathname}`;
   const code = location.pathname.split("/")[2];
 
-  const { onCopy, value, setValue, hasCopied } = useClipboard(url);
+  const { onCopy, setValue, hasCopied } = useClipboard(url);
 
   const user = gameManager.players.find((p) => p.isUser === true);
   const [waiting, setWaiting] = useState<boolean | undefined>(false);
@@ -64,19 +65,6 @@ const Lobby: React.FC<LobbyProps> = ({ gameManager, performAction }) => {
     "showInstructions",
     true
   );
-
-  const [countdownValue, setCountdownValue] = useState(17);
-
-  useEffect(() => {
-    let interval: NodeJS.Timer;
-    if (gameManager.gameType == "PrivateGame") {
-      interval = setInterval(
-        () => setCountdownValue((countdownValue) => countdownValue - 1),
-        1000
-      );
-    }
-    return () => clearInterval(interval);
-  }, [countdownValue]);
 
   return (
     <>
@@ -137,11 +125,7 @@ const Lobby: React.FC<LobbyProps> = ({ gameManager, performAction }) => {
           </AvatarGroup>
         ))}
       </Flex>
-      {gameManager.gameType === "PrivateGame" ? (
-        <Box mt={"4"} fontSize={"lg"}>
-          {`Game starting in ${countdownValue} seconds.`}
-        </Box>
-      ) : user?.isCreator === true ? (
+      {user?.isCreator === true ? (
         <>
           <Button
             mt={"4"}
@@ -470,7 +454,9 @@ const Game: React.FC<GameProps> = ({ gameManager, performAction }) => {
 
   return (
     <>
-      {gameManager.state == "Countdown" && <Countdown timer={10} />}
+      {gameManager.state == "Countdown" && (
+        <Countdown timer={gameManager.countdownTimer} />
+      )}
       {user.state === "Guessing" && (
         <GuessAuthor
           timer={10}
@@ -577,6 +563,7 @@ interface FinishedProps {
 const Finished: React.FC<FinishedProps> = ({ gameManager }) => {
   const auth = useAuth();
   const toast = useToast();
+  const navigate = useNavigate();
   const user = gameManager.players.find((p) => p.isUser === true);
 
   if (user === undefined) {
@@ -605,6 +592,12 @@ const Finished: React.FC<FinishedProps> = ({ gameManager }) => {
       );
     })();
   }, []);
+
+  const playAgain = async () => {
+    let id = await joinRandomGame(auth.user.token);
+    navigate(`/game/${id}`);
+    navigate(0);
+  };
 
   return (
     <>
@@ -646,11 +639,9 @@ const Finished: React.FC<FinishedProps> = ({ gameManager }) => {
         >
           {gameManager.tweet.tweet}
         </Box>
-        <Link href={"/"} _hover={{ textDecoration: "none" }}>
-          <Button colorScheme={"twitter"} variant={"outline"}>
-            {"Play Again?"}
-          </Button>
-        </Link>
+        <Button variant={"outline"} onClick={playAgain} colorScheme={"twitter"}>
+          {"Play Again?"}
+        </Button>
       </VStack>
       <VStack mt={"8"} width={{ base: "sm", md: "2xl" }}>
         <Box fontSize={"3xl"} fontWeight={"semibold"}>
