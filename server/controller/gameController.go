@@ -36,6 +36,8 @@ func JoinGameHandler(w http.ResponseWriter, r *http.Request) {
 func JoinRandomGameHandler(w http.ResponseWriter, r *http.Request) {
 	player_id := r.Context().Value("player").(string)
 	game_id, err := database.DequeueGame()
+	// Check if there are some invalid games that haven't been cleared from memory
+	clearEmptyGames()
 
 	if err != nil {
 		// If there is no game the user can join -> create a new game and add to queue

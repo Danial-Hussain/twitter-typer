@@ -83,7 +83,8 @@ func NewPlayer(
 }
 
 type Game struct {
-	Id                string
+	Id                 string
+	CreateTime         time.Time
 	Type               string
 	Winner             string
 	TimeLimit          int
@@ -111,6 +112,7 @@ func NewGame(player_id string, game_type string) (*Game, error) {
 			Tweet: tweet,
 			Author: author,
 			Type: game_type,
+			CreateTime: time.Now(),
 			AuthorChoices: choices,
 			TimeLimit: RoundTimeLimit,
 			AuthorHandle: author_handle,
@@ -458,4 +460,12 @@ func (g *Game) countCompletedPlayers() int {
 		}
 	}
 	return count
+}
+
+func clearEmptyGames() {
+	for i := range Games {
+		if time.Since(Games[i].CreateTime) > time.Hour {
+			delete(Games, i)
+		}
+	}
 }

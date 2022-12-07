@@ -7,6 +7,10 @@ const config = {
 
 const theme = extendTheme({
   config,
+  fonts: {
+    heading: `'Solway', serif`,
+    body: `'Solway', serif`,
+  },
 });
 
 export default theme;

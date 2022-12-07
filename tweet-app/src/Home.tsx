@@ -65,20 +65,20 @@ const CreateGame = () => {
       borderColor={"gray.200"}
       width={{ base: "xs", md: "sm", lg: "md" }}
     >
-      <Box mb={"5"} fontSize={"4xl"} color={"twitter.800"} textAlign={"center"}>
+      <Box mb={"5"} fontSize={"4xl"} color={"gray.800"} textAlign={"center"}>
         {"Create a Game"}
       </Box>
-      <Button width={"full"} onClick={create} colorScheme={"twitter"}>
+      <Button width={"full"} onClick={create} colorScheme={"blue"}>
         {"Create"}
       </Button>
       <Box
         mx={"4px"}
         mt={"12px"}
         fontSize={"lg"}
-        color={"gray.800"}
+        color={"gray.500"}
         textAlign={"center"}
       >
-        {"Create a private game and invite your friends."}
+        {"Create a private game and invite your friends to join."}
       </Box>
     </Box>
   );
@@ -135,7 +135,7 @@ const JoinGame = () => {
       <Box mb={"5"} fontSize={"4xl"} color={"gray.800"} textAlign={"center"}>
         {title}
       </Box>
-      <Button width={"full"} onClick={joinRandom} colorScheme={"blackAlpha"}>
+      <Button width={"full"} onClick={joinRandom} colorScheme={"blue"}>
         {"Join Public Game"}
       </Button>
       <Box textAlign={"center"} my={"4"} color={"gray.800"}>
@@ -146,7 +146,7 @@ const JoinGame = () => {
         placeholder="Enter the game code"
         onChange={(e) => setJoinCode(e.target.value)}
       />
-      <Button width={"full"} mt={"2"} onClick={join} colorScheme={"blackAlpha"}>
+      <Button width={"full"} mt={"2"} onClick={join} colorScheme={"blue"}>
         {"Join"}
       </Button>
       <Box color={"red.300"} textAlign={"center"} mt={"2"}>
@@ -425,6 +425,12 @@ const TwitterImageMarquee = () => {
     "marcandreessen",
     "sahilbloom",
     "paulgraham",
+    "balajis",
+    "sbf",
+    "dalio",
+    "samaltman",
+    "natesilver",
+    "maddow",
   ];
   return (
     <Box my={"5"} maxW={{ base: "xs", md: "3xl", lg: "full" }}>
@@ -432,17 +438,18 @@ const TwitterImageMarquee = () => {
         {people.map((p, i) => (
           <Image
             key={i}
-            mx={"2"}
-            width={"10"}
-            height={"10"}
+            mx={"-2"}
+            width={"14"}
+            height={"14"}
             border={"2px"}
             rounded={"full"}
             src={`/creators/${p}.jpg`}
-            borderColor={"twitter.500"}
+            borderColor={"white"}
+            shadow={"sm"}
           />
         ))}
       </Marquee>
-      <Box textAlign={"center"} color={"gray.500"} mt={"4"}>
+      <Box textAlign={"center"} color={"gray.500"} mt={"4"} fontSize={"lg"}>
         {"Tweets from your favorite creators"}
       </Box>
     </Box>
@@ -455,7 +462,7 @@ const Home = () => {
       <Box mx={"auto"}>
         <AnimatedText
           springy={true}
-          fontSize={{ base: "4xl", md: "6xl" }}
+          fontSize={{ base: "4xl", md: "7xl" }}
           fontWeight={"bold"}
           fontColor={"gray.700"}
           text={"TwitterTyper"}

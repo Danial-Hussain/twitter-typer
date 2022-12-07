@@ -689,7 +689,7 @@ const Finished: React.FC<FinishedProps> = ({ gameManager }) => {
                   <Box
                     px={"2"}
                     rounded={"md"}
-                    bg={"twitter.300"}
+                    bg={"twitter.200"}
                     color={"twitter.800"}
                     fontWeight={"semibold"}
                   >
@@ -698,13 +698,27 @@ const Finished: React.FC<FinishedProps> = ({ gameManager }) => {
                   <Box
                     px={"2"}
                     rounded={"md"}
-                    bg={"twitter.300"}
+                    bg={"twitter.200"}
                     color={"twitter.800"}
                     fontWeight={"semibold"}
                   >
                     {Number(p.speed).toFixed(2)} {"wpm"}
                   </Box>
                 </HStack>
+                <Box
+                  px={"2"}
+                  rounded={"md"}
+                  bg={"twitter.200"}
+                  color={"twitter.800"}
+                  fontWeight={"semibold"}
+                >
+                  {Number(
+                    (p.correctAnswers /
+                      (p.incorrectAnswers + p.correctAnswers)) *
+                      100
+                  ).toFixed(2)}
+                  {"% accuracy"}
+                </Box>
               </VStack>
             </HStack>
           ))}

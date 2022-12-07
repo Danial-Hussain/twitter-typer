@@ -1,4 +1,5 @@
 import "./index.css";
+import "@fontsource/solway";
 import theme from "./theme";
 import router from "./router";
 import ReactDOM from "react-dom/client";
