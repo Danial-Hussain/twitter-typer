@@ -90,13 +90,17 @@ const Navbar = () => {
 const Footer = () => {
   return (
     <Flex
-      height={"14"}
+      height={"16"}
       width={"full"}
       bg={"gray.800"}
       align={"center"}
+      flexDir={"column"}
       justify={"center"}
     >
       <Box color={"white"}>{"Made with ❤️ by Ali"}</Box>
+      <Box color={"gray.500"} mt={"2px"}>
+        {"TwitterTyper.tech has no affiliation with Twitter Inc."}
+      </Box>
     </Flex>
   );
 };

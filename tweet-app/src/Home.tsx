@@ -1,8 +1,8 @@
 import Layout from "./Layout";
 import { Stats, useAuth } from "./auth";
 import Marquee from "react-fast-marquee";
+import { AnimatedText } from "./Animated";
 import { useEffect, useState } from "react";
-import { AnimatedText, AnimatedBox } from "./Animated";
 import { Link, useNavigate } from "react-router-dom";
 import { Keyboard, KeyboardData } from "./Keyboards";
 import { ArrowUpIcon, EditIcon } from "@chakra-ui/icons";
